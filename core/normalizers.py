@@ -8,139 +8,99 @@ from pandas._libs.tslibs.timestamps import Timestamp
 from zipfile import ZipFile
 from io import BytesIO
 import numpy as np
+import rarfile
+import zipfile
+import pyzipper
 
-class SagaNormalizer(Normalizer):
-    def read(self, pathdir:Path):
-        df_list = []
-        for path in pathdir.iterdir():
-            df =  pd.read_csv(path, sep='|', encoding='latin1')
-            df_list.append(df)
-        return df_list
-    
-    def normalize_sells(self, df:DataFrame):
-        def normalizar_fecha(date:str) -> str:
-            dia_semana, fecha = date.split('_')
-            dia, mes = fecha.split('-')
-            return f"{dia}/{mes}/{self.year}" 
-        df = df.iloc[:, :-6]
-        target_columns = ["UPC", "SKU", "ESTILO", "DESCRIPCION_LARGA", "SUBCLASE", "DESC_SUBCLASE", "MARCA", "MODELO", "NRO_LOCAL", "LOCAL"]
-        df = df.melt(id_vars=target_columns, var_name='FECHA', value_name='UNIDADES')
-        df["FECHA"] = df["FECHA"].apply(normalizar_fecha)
-        df["FECHA"] = pd.to_datetime(df["FECHA"], format="%d/%m/%Y")
-        df = df[df["UNIDADES"] != 0]
-        return df
-
-    def normalize_stock(self, df:DataFrame):
-        target_columns = ["SKU", "DESCRIPCION_LARGA", "MODELO", "NRO_LOCAL", "STOCK"]
-        df = df[target_columns]
-        df = df[df["STOCK"] != 0]
-        return df
-
-    def read_stock(self, pathfile:Path) -> DataFrame:
-        df =  pd.read_csv(pathfile, sep='|', encoding='latin1')
-        return df
-    def __str__(self):
-        return "SAGA-FALABELLA"
 class EstilosNormalizer(Normalizer):
     def read(self, pathdir:Path):
-        df_list = []
-        for path in pathdir.iterdir():
+        if pathdir.is_file():
+            df = pd.read_excel(pathdir)
+            df = df.iloc[:-1].copy()
+            return [df]
 
-            df = pd.read_excel(path, skiprows=4, usecols=range(22))
-            df_list.append(df)
-        return df_list
     
     def normalize_sells(self, df:DataFrame):
-        columnas_a_eliminar = [1, 2, 4, 5, 6, 8, 9, 11, 12, 14, 15, 16, 18, 19, 21]
-
-        df = df.drop(df.columns[columnas_a_eliminar], axis=1)
-
-        df['Division'] = df['Division'].str.upper()
-        df = df[~df['Division'].str.contains('TOTAL', case=False, na=False)]
-        df['Division'] = df['Division'].ffill()
-        
-        df['Fecha'] = df['Fecha'].astype(str)
-        df['Fecha'] = df['Fecha'].str.upper()
-        df = df[~df['Fecha'].str.contains('TOTAL')]
-        df['Fecha'] = df['Fecha'].replace('NAN', np.nan)
-        df['Fecha'] = df['Fecha'].ffill()
-        df['Fecha'] = pd.to_datetime(df['Fecha'])
-        
-        df['Tienda'] = df['Tienda'].str.upper()
-        df = df[~df['Tienda'].str.contains('TOTAL', case=False, na=False)]
-        df['Tienda'] = df['Tienda'].ffill()
-        
-        df['Sku'] = df['Sku'].astype(int).astype(str).apply(lambda x: "00" + x)
-        df['Sku'] = df['Sku'].ffill()
-        
-        df = df.drop(['Division'], axis=1)
+        df["Venta UN AAc"] = pd.to_numeric(df["Venta UN AAc"], errors="coerce").fillna(0)
+        df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
+        df["Fecha"] = pd.to_datetime("2026-01-" + df["DiaMes"].astype(str), format="%Y-%m-%d")
+        df = df[["Fecha", "Sku", "Descripcion", "Tienda", "Venta UN AAc", "Venta Neta AAc"]]
+        df = df[df["Venta UN AAc"] > 0]
+        df = df.reset_index(drop=True)
         return df
     
-    def normalize_stock(self, df:DataFrame):
-        df = df.drop(columns=["Clase",
-                        "Division",
-                        "Departamento",
-                        "Clasificacion",
-                        "Estilo (Sku Padre)",
-                        "Descripcion Estilo (Sku Padre)",
-                        "Proveedor",
-                        "Division",
-                        "Ultima Compra",
-                        "Precio", "Margen", "Mk Up", "Fecha Ultima Compra", "Unidades Ultima Compra", "Costo Extendido Ultima Compra",
-                        "Stock Unidades", "Unidades Venta", "Retail Venta", "Unidades Compra", "Costo de Compra", "Costo FOB_USD_OC",
-                        "Semana Antiguedad", "Sell Off", "Tipo Item", "Status", "Temporada"]
-               )
-        id_columns = ["Sku", "Descripcion", "Marca", "Costo", "Ultimo Costo Compra", "Precio + IGV"]
-        unpivot_columns = df.columns.difference(id_columns)
-        df = pd.melt(df, id_vars=id_columns, var_name="TIENDA", value_vars=unpivot_columns, value_name="CANTIDAD")
-        df = df[df['TIENDA'].str.startswith('INV - ')]
+    def normalize_stock(self, df:DataFrame, date):
+        df = df.copy()
+        df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
+        df["Fecha"] = pd.to_datetime("2026-01-" + df["DiaMes"].astype(str), format="%Y-%m-%d")
+        max_dia = pd.to_numeric(df["DiaMes"], errors="coerce").max()
+        # Convertir stock a numérico
+        df["Stk UN Empresa"] = pd.to_numeric(df["Stk UN Empresa"], errors="coerce").fillna(0)
         
-        df = df[df['CANTIDAD'] != 0]
-        df['TIENDA'] = df['TIENDA'].apply(lambda x: x.replace('INV - ', ''))
-        df['STOCK COSTO'] = df["Ultimo Costo Compra"]*df["CANTIDAD"]
-        return df
+        df = df[df["DiaMes"] == max_dia].copy()
+        
+        
+        # Seleccionar solo las columnas que interesan
+        df = df[["Fecha", "Sku", "Descripcion", "Tienda", "Stk UN Empresa"]]
+        df = df.reset_index(drop=True)
+        return df 
     
     def __str__(self):
         return "ESTILOS"
 
     def read_stock(self, pathfile:Path) -> DataFrame:
         df = pd.read_excel(pathfile)
+        df = df.iloc[:-1].copy()
         return df
 class OechsleNormalizer(Normalizer):
     def read(self, pathdir:Path):
-        df_list = []
-        for path in pathdir.iterdir():
-            with ZipFile(path, 'r') as zip_file:
-                nombre_archivo = zip_file.namelist()[0]
-                contenido_csv = BytesIO(zip_file.read(nombre_archivo))
-                df = pd.read_csv(contenido_csv, sep=',', encoding='latin1') 
-                df_list.append(df)
-        return df_list
+
+        with zipfile.ZipFile(pathdir) as rf:
+            
+            # Buscar archivos CSV dentro del RAR
+            archivos_csv = [f for f in rf.namelist() if f.endswith('.csv')]
+            
+            if not archivos_csv:
+                raise ValueError("No se encontró ningún archivo CSV dentro del RAR")
+            
+            # Tomar el primer CSV encontrado
+            nombre_csv = archivos_csv[0]
+            
+            # Abrir el CSV directamente sin extraerlo al disco
+            with rf.open(nombre_csv) as archivo:
+                df = pd.read_csv(archivo, sep=',', encoding='latin1')
+            
+            return [df]
 
     def normalize_sells(self, df:DataFrame):
         df = df.rename(columns={'PERIODO': 'FECHA'})
         df['FECHA'] = pd.to_datetime(df['FECHA'])
         df = df[df['VTA_PERIODO_UNID'] != 0]
-        df['COSTO_UNITARIO'] = None
-        df['COSTO_TOTAL'] = None
+        df = df.sort_values(by="FECHA", ascending=True)
         return df
 
     def __str__(self):
         return 'OECHSLE'
     
-    def normalize_stock(self, df:DataFrame):
-        target_columns = ["fecha", "COD_OECHSLE", "COD_LOCAL", "STOCK(U)", "TRANSITO(U)", "STOCKNODISP.(U)", "ASIGNADO(U)"]
+    def normalize_stock(self, df:DataFrame, date):
+        df["fecha"] = date
+        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y")
+        target_columns = ["fecha", "COD_OECHSLE", "COD_PRODUCTO_PROVEEDOR", "DESCRIPCION_PRODUCTO", "MARCA",
+                          "ESTADO_PRODUCTO", 
+                          "COD_LOCAL", "DESCRIPCION_LOCAL", "STOCK(U)", "TRANSITO(U)", "STOCKNODISP.(U)", "ASIGNADO(U)"]
         df = df[target_columns]
-        nuevas_columnas = ["fecha", "sku", "cod_local", "stock", "transito", "stock_no_disponible", "asignado"]
+        df = df[~df["DESCRIPCION_PRODUCTO"].str.contains(r"\b(REBATE|REB)\b", case=False, na=False)]
+        nuevas_columnas = ["fecha", "sku", "cod_intek", "descripcion", "marca", "estado","cod_local", "descripcion_local", "stock", "transito", "stock_no_disponible", "asignado"]
         renombre = {clave:valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
 
-        df["stock"] = df["stock"].apply(lambda x: x if x > 0 else 0)
+        df["stock"] = df["stock"].apply(lambda x: x if x > 0 else 0) 
         df["transito"] = df["transito"].apply(lambda x: x if x > 0 else 0)
         df["stock_no_disponible"] = df["stock_no_disponible"].apply(lambda x: x if x > 0 else 0)
         df["asignado"] = df["asignado"].apply(lambda x: x if x > 0 else 0)
         df["fecha"] = pd.to_datetime(df["fecha"], format="%Y%m%d")
         df["stock_total"] = df["stock"] + df["transito"] + df["stock_no_disponible"] + df["asignado"]
+        df = df[df["stock_total"] > 0]
         return df
 
     def read_stock(self, pathfile:Path) -> DataFrame:
@@ -151,7 +111,11 @@ class OechsleNormalizer(Normalizer):
             return df
 class RipleyNormalizer(Normalizer):
     def read(self, pathdir:Path):
-        return  [pd.read_excel(path, header=None) for path in pathdir.iterdir() if str(path.absolute()).endswith('.xlsx')]
+        if pathdir.is_file():
+            df = pd.read_excel(pathdir, header=None)
+            return [df]
+        df_list = [pd.read_excel(path, header=None) for path in pathdir.iterdir() if str(path.absolute()).endswith('.xlsx')]
+        return df_list
 
     def normalize_sells(self, df:DataFrame):
         """Funcion que sirve para normalizar un dataframe de Ripley. Normalizar implica que el archivo descargado del B2B de ripley quede en forma normal para el análisis."""
@@ -187,7 +151,7 @@ class RipleyNormalizer(Normalizer):
             return df
 
     
-    def normalize_stock(self, df:DataFrame):
+    def normalize_stock(self, df:DataFrame, date):
         """Funcion que sirve para normalizar un dataframe de Ripley. Normalizar implica que el archivo descargado del B2B de ripley quede en forma normal para el análisis."""
 
         target_columns = ["Fecha","Codigo Sucursal", "Codigo Modelo", "Stock S/.", "Stock Und."]
@@ -230,34 +194,55 @@ class TaiLoyNormalizer(Normalizer):
 
 
     def read(self, pathdir:Path):
-        df_list = []
-        for path in pathdir.iterdir():
-            df =  pd.read_excel(path)
-            df_list.append(df)
-        return df_list
+        with pyzipper.AESZipFile(pathdir, mode='r') as rf:
+            
+            # Buscar archivos CSV dentro del RAR
+            rf.setpassword(b'20600768043')
+            archivos_csv = [f for f in rf.namelist() if f.endswith('.csv')]
+            
+            if not archivos_csv:
+                raise ValueError("No se encontró ningún archivo CSV dentro del RAR")
+            
+            # Tomar el primer CSV encontrado
+            nombre_csv = archivos_csv[0]
+            
+            # Abrir el CSV directamente sin extraerlo al disco
+            with rf.open(nombre_csv, pwd=b'20600768043') as archivo:
+                df = pd.read_csv(archivo, sep=';', encoding='latin1')
+                print(df.head())
+                return [df]
+
+    # def normalize_sells(self, df:DataFrame):
+        # result = df.iloc[6:]
+        # result.columns = result.iloc[0]
+        # result.reset_index(drop=True, inplace=True)
+        # result = result[1:]
+        # columnas_a_eliminar = ['GRUPO', 'CATEGORÍA', 'UNIDAD BASE', 'ESTADO', 'TOTAL VENTAS']
+        
+        # result = result.drop(columnas_a_eliminar, axis=1)
+        # result = pd.melt(result, id_vars=['FECHA INICIAL', 'FECHA FINAL', 'CÓDIGO AS400', 'CÓDIGO SAP', 'DESCRIPCIÓN'], var_name='TIENDA', value_name='UNIDADES', col_level=0)
+        # result = result[result['UNIDADES'] != 0]
+        # result.reset_index(drop=True, inplace=True)
+        # result['FECHA INICIAL'] = result['FECHA INICIAL'].str.strip()
+        # result['FECHA FINAL'] = result['FECHA FINAL'].str.strip()
+        # result['FECHA INICIAL'] = pd.to_datetime(result['FECHA INICIAL'], format='%Y%m%d')
+        # result['FECHA FINAL'] = pd.to_datetime(result['FECHA FINAL'], format='%Y%m%d')  
+
+
+        # result['CÓDIGO AS400'] = result['CÓDIGO AS400'].apply(lambda x: int(x))
+        # result['CÓDIGO SAP'] = result['CÓDIGO SAP'].apply(lambda x: int(x))
+        # result['SEMANA'] = self.obtenerSemanaComercial(result['FECHA INICIAL'].iloc[0])
+        
+        # return result
 
     def normalize_sells(self, df:DataFrame):
-        result = df.iloc[6:]
-        result.columns = result.iloc[0]
-        result.reset_index(drop=True, inplace=True)
-        result = result[1:]
-        columnas_a_eliminar = ['GRUPO', 'CATEGORÍA', 'UNIDAD BASE', 'ESTADO', 'TOTAL VENTAS']
-        
-        result = result.drop(columnas_a_eliminar, axis=1)
-        result = pd.melt(result, id_vars=['FECHA INICIAL', 'FECHA FINAL', 'CÓDIGO AS400', 'CÓDIGO SAP', 'DESCRIPCIÓN'], var_name='TIENDA', value_name='UNIDADES', col_level=0)
-        result = result[result['UNIDADES'] != 0]
-        result.reset_index(drop=True, inplace=True)
-        result['FECHA INICIAL'] = result['FECHA INICIAL'].str.strip()
-        result['FECHA FINAL'] = result['FECHA FINAL'].str.strip()
-        result['FECHA INICIAL'] = pd.to_datetime(result['FECHA INICIAL'], format='%Y%m%d')
-        result['FECHA FINAL'] = pd.to_datetime(result['FECHA FINAL'], format='%Y%m%d')  
 
-
-        result['CÓDIGO AS400'] = result['CÓDIGO AS400'].apply(lambda x: int(x))
-        result['CÓDIGO SAP'] = result['CÓDIGO SAP'].apply(lambda x: int(x))
-        result['SEMANA'] = self.obtenerSemanaComercial(result['FECHA INICIAL'].iloc[0])
-        
-        return result
+        df.rename(columns={'FECHA INICIAL': 'FECHA', 'ALMACEN TIENDA': 'ALM', "CÃDIGO AS400": "AS400", "CÃDIGO SAP": "SAP", "DESCRIPCIÃN": "DESCRIPCION"}, inplace=True)
+        df['FECHA'] = pd.to_datetime(df['FECHA'], format='%Y%m%d')
+        df = df[["FECHA", "ALM", "NOMBRE TIENDA", "AS400", "SAP", "VENTA S/", "VENTA UNIDADES"]]
+        df = df[df['VENTA UNIDADES'] != 0]
+        df = df.sort_values(by="FECHA", ascending=True)
+        return df
     
     def __str__(self):
         return "TAI LOY"
@@ -281,6 +266,9 @@ class TaiLoyNormalizer(Normalizer):
 
 class TottusNormalizer(Normalizer):
     def read(self, pathdir:Path) -> list[DataFrame]:
+        if pathdir.is_file():
+            df = pd.read_csv(pathdir, sep=',', encoding='latin1')
+            return [df]
         df_list = []
         for path in pathdir.iterdir():
             df =  pd.read_csv(path, sep=',', encoding='latin1')
@@ -288,24 +276,53 @@ class TottusNormalizer(Normalizer):
             df_list.append(df)
         return df_list
     
+    # def read_stock(self, pathfile:Path) -> DataFrame:
+    #     print(f"Leyendo archivo {pathfile}")
+    #     df =  pd.read_csv(pathfile, sep=',', encoding='latin1')
+    #     df['fecha'] = str(pathfile).split('\\')[-1].split('.')[0]
+    #     return df
+
     def read_stock(self, pathfile:Path) -> DataFrame:
         print(f"Leyendo archivo {pathfile}")
         df =  pd.read_csv(pathfile, sep=',', encoding='latin1')
-        df['fecha'] = str(pathfile).split('\\')[-1].split('.')[0]
         return df
 
     def normalize_sells(self, df:DataFrame) -> DataFrame:
-        target_columns = ['fecha', 'Upc',' Sku', 'Estilo', 'Descripción del Producto', 'Marca', 'Modelo', 'Estado', 'Umb', 'Surtido', 'N° Local', 'Nombre Local','Venta(u)', 'Venta al publico(C/IVA)', 'Venta en Costo(S/IVA)']
+        df = df.drop(df.columns[[1, 2, 3, 4, 11, 12, 13]], axis=1)
+        target_columns = ["Historic Sales Tot Pe Fecha Date", "Historic Sales Tot Pe Cod Ean", "Historic Sales Tot Pe Cod SKU", "Historic Sales Tot Pe Desc SKU", "Historic Sales Tot Pe Cod Marca", "Historic Sales Tot Pe Cod Localfisico", "Historic Sales Tot Pe Desc Localfisico", "Historic Sales Tot Pe Qty", "Historic Sales Tot Pe Venta Bruta", "Historic Sales Tot Pe Venta Neta"]
         df = df[target_columns]
-        nuevas_columnas = ['fecha', 'upc','sku', 'estilo', 'descripcion_producto', 'marca', 'modelo', 'estado', 'umb','surtido', 'cod_local', 'local', 'venta_unidades', 'venta_publico_igv', 'venta_costo']
+        nuevas_columnas = ['date', 'upc','sku', 'descripcion_producto', 'marca', 'cod_local', 'local', 'venta_unidades', "venta_publico", "timbrado"]
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
-        df['fecha'] = pd.to_datetime(df['fecha'], format="%Y%m%d")
+        cols = ["venta_publico", "timbrado"]
+        df[cols] = df[cols].replace(',', '.', regex=True).astype(float)
+
+        df['date'] = pd.to_datetime(df['date'])
         df = df[df["venta_unidades"] != 0]
+        df = df.sort_values(by="date", ascending=True)
         return df
     
-    def normalize_stock(self, df:DataFrame) -> DataFrame:
-        target_columns = ["fecha"," Sku", "N° Local", "Inventario en Locales(U)", "Tránsito(U)", "Inv a Costo(S/IVA)"]
+    def normalize_stock(self, df:DataFrame, date) -> DataFrame:
+        df = df.drop(df.columns[[0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 14, 15]], axis=1)
+        df['fecha'] = date
+
+        # target_columns = [
+        #     "fecha",
+        #     "Vw Ventas E Inventario Tot Pe Cod SKU",
+        #     "Vw Ventas E Inventario Tot Pe Cod Localfisico",
+        #     "Vw Ventas E Inventario Tot Pe Stock Cont Qty",
+        #     "Vw Ventas E Inventario Tot Pe In Transit",
+        #     "Vw Ventas E Inventario Tot Pe Stock Cont Cost Amt"
+        # ]
+        
+        target_columns = [
+            "fecha",
+            "Sku",
+            "Nro Local",
+            "Inventario Disponible Unidades",
+            "En trÃ¡nsito",
+            "Costo Inventario Disponible"
+        ]        
         df = df[target_columns]
         nuevas_columnas = ["fecha","sku", "cod_local", "stock_locales", "stock_transito", "stock_costo"]
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
@@ -313,26 +330,170 @@ class TottusNormalizer(Normalizer):
 
         df["stock_locales"] = df["stock_locales"].apply(lambda x: x if x > 0 else 0)
         df["stock_transito"] = df["stock_transito"].apply(lambda x: x if x > 0 else 0)
+        df["stock_costo"] = df["stock_costo"].replace(r'\$', '', regex=True).astype(float)
         df["stock_costo"] = df["stock_costo"].apply(lambda x: x if x > 0 else 0)
+
         df["stock_total"] = df["stock_locales"] + df["stock_transito"]
+        df = df[df["stock_total"] != 0]
         df.reset_index(drop=True, inplace=True)
-        df["fecha"] = pd.to_datetime(df["fecha"], format="%Y%m%d")
+        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y")
         return df
     
     def __str__(self):
         return 'TOTTUS'
 
-def saga_normalizer(df:pd.DataFrame, year:int):
-    def normalizar_fecha(date:str) -> str:
-        dia_semana, fecha = date.split('_')
-        dia, mes = fecha.split('-')
-        return f"{dia}/{mes}/{year}" 
-    df = df.iloc[:, :-6]
-    target_columns = ["UPC", "SKU", "ESTILO", "DESCRIPCION_LARGA", "SUBCLASE", "DESC_SUBCLASE", "MARCA", "MODELO", "NRO_LOCAL", "LOCAL"]
-    df = df.melt(id_vars=target_columns, var_name='FECHA', value_name='UNIDADES')
-    df["FECHA"] = df["FECHA"].apply(normalizar_fecha)
-    df["FECHA"] = pd.to_datetime(df["FECHA"], format="%d/%m/%Y")
-    df = df[df["UNIDADES"] != 0]
+class SagaNormalizer(Normalizer):
+    def read(self, pathdir:Path):
+        print(f"Leyendo archivo {pathdir}")
+        if pathdir.is_file():
+            df = pd.read_csv(pathdir, sep=',', encoding='latin1')
+            return [df]
+
+        df_list = []
+        for path in pathdir.iterdir():
+            df =  pd.read_csv(path, sep=',', encoding='latin1')
+            df_list.append(df)
+        return df_list
+    
+    def normalize_sells(self, df:pd.DataFrame):
+        df = df.drop(df.columns[[1, 2, 3, 4, 9, 12, 13, 14]], axis=1)
+        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%Y-%m-%d")
+        df = df.sort_values("Fecha").reset_index(drop=True)
+        df = df[df["Unidades"] != 0]
+        
+        target_columns = [
+           "Fecha",
+            "SKU",
+            "Producto",
+            "Modelo",
+            "Marca",
+            "ID Local",
+            "Local",
+            "Venta bruta",
+            "Venta neta",
+            "Unidades",
+            "Costo", 
+        ]
+        df = df[target_columns]
+        nuevas_columnas = ["fecha", "sku", "descripcion_producto", "modelo", "marca", "cod_local", "local", "venta_publico", "timbrado", "unidades", "venta_costo"]
+        renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
+        df.rename(columns=renombre, inplace=True)
+        df = df[~df["descripcion_producto"].str.startswith("DV_", na=False)]
+        cols = ["venta_publico", "timbrado", "venta_costo"]
+        df[cols] = df[cols].replace(',', '.', regex=True).astype(float)
+        return df
+
+    def __str__(self):
+        return "SAGA-FALABELLA"
 
 
     
+    def read_stock(self, pathfile:Path) -> DataFrame:
+        print(f"Leyendo archivo {pathfile}")
+        df =  pd.read_csv(pathfile, sep=',', encoding='latin1', header=0)
+        return df
+
+    def normalize_stock(self, df:DataFrame, date) -> DataFrame:
+        df = df[[
+           "ID Producto",
+            "Producto",
+            "ID Local",
+            "Local",
+            "Stock Disponible", 
+        ]]
+
+        df = df[df["Stock Disponible"] > 0]
+        df = df[~df["Producto"].str.startswith("DV_", na=False)]
+        df.insert(0, "fecha", date)
+
+        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y")
+        return df
+
+class CencosudNormalizer(Normalizer):
+    def read(self, pathdir:Path):
+
+        with zipfile.ZipFile(pathdir) as rf:
+            
+            # Buscar archivos CSV dentro del RAR
+            archivos_csv = [f for f in rf.namelist() if f.endswith('.csv')]
+            
+            if not archivos_csv:
+                raise ValueError("No se encontró ningún archivo CSV dentro del RAR")
+            
+            # Tomar el primer CSV encontrado
+            nombre_csv = archivos_csv[0]
+            
+            # Abrir el CSV directamente sin extraerlo al disco
+            with rf.open(nombre_csv) as archivo:
+                df = pd.read_csv(archivo, sep=',', encoding='latin1')
+            
+            return [df]
+
+    def normalize_sells(self, df:DataFrame):
+        df = df.rename(columns={'PERIODO': 'FECHA'})
+        df['FECHA'] = pd.to_datetime(df['FECHA'])
+        df = df[df['VTA_PERIODO(u)'] != 0]
+        columnas = [
+            "FECHA",
+            "COD_CENCOSUD",
+            "COD_PRODUCTO_PROVEEDOR",
+            "DESCRIPCION",
+            "MARCA",
+            "COD_LOCAL",
+            "DESCRIPCION_LOCAL",
+            "VTA_PERIODO(u)",
+            "VTA_PUBLICO($)",
+            "VTA_COSTO($)",
+            "CANAL_VTA"
+        ]
+
+        df = df[columnas]
+        df = df.sort_values(by="FECHA", ascending=True)
+        return df
+
+    def __str__(self):
+        return 'CENCOSUD'
+    
+    def normalize_stock(self, df:DataFrame, date):
+        df["FECHA"] = date
+        df["FECHA"] = pd.to_datetime(df["FECHA"], format="%d/%m/%Y")
+        target_columns = [
+            "FECHA",
+            "COD_CENCOSUD",
+            "COD_PRODUCTO_PROVEEDOR",
+            "DESCRIPCION",
+            "MARCA",
+            "COD_LOCAL",
+            "DESCRIPCION_LOCAL",
+            "INVENTARIO(u)",
+            "TRANSITO(u)",
+            "PRECIO_COSTO"
+        ]
+        df = df[target_columns].copy()
+        nuevas_columnas = ["fecha", "sku", "cod_intek", "descripcion", 
+                           "marca", "cod_local", "descripcion_local", 
+                           "stock", "transito", "costo unitario"]
+        renombre = {clave:valor for clave, valor in zip(target_columns, nuevas_columnas)}
+        df.rename(columns=renombre, inplace=True)
+
+        # Convertir columnas a numéricas antes de operar
+        df["stock"] = pd.to_numeric(df["stock"], errors="coerce").clip(lower=0)
+        df["transito"] = pd.to_numeric(df["transito"], errors="coerce").clip(lower=0)
+        df["costo unitario"] = pd.to_numeric(df["costo unitario"], errors="coerce")
+
+        df["stock"] = df["stock"].apply(lambda x: x if x > 0 else 0) 
+        df["transito"] = df["transito"].apply(lambda x: x if x > 0 else 0)
+        df["stock total"] = df["stock"] + df["transito"]
+        df["costo tot stock"] = df["costo unitario"]*df["stock total"]
+        df = df[["fecha", "sku", "cod_intek", "descripcion", 
+                           "marca", "cod_local", "descripcion_local", 
+                           "stock total", "stock", "transito", "costo unitario", "costo tot stock"]]
+        df = df[df["stock total"] > 0]
+        return df
+
+    def read_stock(self, pathfile:Path) -> DataFrame:
+        with ZipFile(pathfile, 'r') as zip_file:
+            nombre_archivo = zip_file.namelist()[0]
+            contenido_csv = BytesIO(zip_file.read(nombre_archivo))
+            df = pd.read_csv(contenido_csv, sep=',', encoding='latin1')
+            return df
