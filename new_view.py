@@ -10,14 +10,25 @@ from util.whateveryouchooser import Chooser
 from pathlib import Path
 from tkinter import messagebox
 import os
-from config import ICON_PATH, OUTPUT_PATH
 from tkcalendar import Calendar, DateEntry
 from datetime import date, timedelta
+from config import AppConfig
 
+AppConfig.load()
+
+# Ahora ya puedes usarla
+output_path = AppConfig.get_output_path()
+print("Output path:", output_path)
+
+OUTPUT_PATH = AppConfig.get_output_path()
+ICON_PATH = AppConfig.get_icon_path()
 
 class MainWindow(tkinter.Tk):
     def __init__(self, screenName: str | None = None, baseName: str | None = None, className: str = "Tk", useTk: bool = True, sync: bool = False, use: str | None = None) -> None:
         super().__init__(screenName, baseName, className, useTk, sync, use)
+    # Inicializa configuración
+ 
+
         self.geometry("300x470")
         self.is_directory = tkinter.BooleanVar(value=False)
         # self.resizable(False, False)
@@ -120,18 +131,16 @@ class MainWindow(tkinter.Tk):
         
     def create_output_ventas(self, normalizer, path:Path):
         try:
-            print("Valor del path: ", path)
-            updater = Updater()
+            updater = Updater(OUTPUT_PATH)
             filename = f"OUTPUT-{normalizer}.xlsx"
             output_path = updater.consolidate_sells(path, normalizer, filename)
-            print("Ventas creado con exito")
             response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
             output_path = Path(OUTPUT_PATH) / output_path
             if response:
                 self.__open_excel__(output_path)
         except Exception as e:
             traceback.print_exc()
-            messagebox.showerror(message="Algo fue mal")
+            messagebox.showerror(message=f"Problema al generar las ventas: {e}")
 
     def create_output_stock(self, normalizer, path:Path):
         try:
@@ -144,7 +153,8 @@ class MainWindow(tkinter.Tk):
             if response:
                 self.__open_excel__(output_path)
         except Exception as e:
-            messagebox.showerror(message="Algo fue mal")
+            traceback.print_exc()
+            messagebox.showerror(message=f"Problema al generar el stock: {e}")
             
     
     def __select__(self, is_directory: bool) -> Path:

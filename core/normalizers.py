@@ -239,7 +239,7 @@ class TaiLoyNormalizer(Normalizer):
 
         df.rename(columns={'FECHA INICIAL': 'FECHA', 'ALMACEN TIENDA': 'ALM', "CÃDIGO AS400": "AS400", "CÃDIGO SAP": "SAP", "DESCRIPCIÃN": "DESCRIPCION"}, inplace=True)
         df['FECHA'] = pd.to_datetime(df['FECHA'], format='%Y%m%d')
-        df = df[["FECHA", "ALM", "NOMBRE TIENDA", "AS400", "SAP", "VENTA S/", "VENTA UNIDADES"]]
+        df = df[["FECHA", "ALM", "NOMBRE TIENDA", "AS400", "SAP", "DESCRIPCION", "ESTADO", "VENTA S/", "VENTA UNIDADES"]]
         df = df[df['VENTA UNIDADES'] != 0]
         df = df.sort_values(by="FECHA", ascending=True)
         return df
@@ -247,23 +247,53 @@ class TaiLoyNormalizer(Normalizer):
     def __str__(self):
         return "TAI LOY"
     
-    def normalize_stock(self, df:DataFrame) -> DataFrame:
-        result = df.iloc[6:]
-        result.columns = result.iloc[0]
-        result.reset_index(drop=True, inplace=True)
-        result = result[1:]
-        columnas_a_eliminar = ['STOCK FÍSICO TOTAL', 'GRUPO', 'CATEGORÍA', 'UNIDAD BASE', 'ESTADO', 'COMPRADOR', 'ABC']
-        result = result.drop(columnas_a_eliminar, axis=1)
-        result = pd.melt(result, id_vars=['CÓDIGO AS400', 'CÓDIGO SAP', 'DESCRIPCIÓN'], var_name='TIENDA', value_name='UNIDADES', col_level=0)
-        result = result[result['UNIDADES'] != 0]
-        result['CÓDIGO AS400'] = result['CÓDIGO AS400'].astype(int)
-        result['CÓDIGO SAP'] = result['CÓDIGO SAP'].astype(int)
-        return result
+    def normalize_stock(self, df:DataFrame, date) -> DataFrame:
+        df = df.drop(columns=["COMPRADOR", "GRUPO", "CATEGORÃA", "UNIDAD BASE", "ABC", "TRÃNSITO TOTAL", "STOCK FÃSICO TOTAL"])
+        df = df.melt(
+            id_vars=["CÃDIGO AS400", "CÃDIGO SAP", "DESCRIPCIÃN", "ESTADO"],      # columnas que se mantienen fijas
+            var_name="TIENDA",           # nombre de la nueva columna con nombres de tienda
+            value_name="UNIDADES"        # nombre de la columna con los valores
+    )
+        df = df[df["UNIDADES"] > 0]
+        df = df.reset_index(drop=True)
+        df["FECHA"] = date
+        df["FECHA"] = pd.to_datetime(df["FECHA"], format="%d/%m/%Y")
 
-    def read_stock(self, pathfile:Path) -> DataFrame:
-        df =  pd.read_excel(pathfile)
+        target_columns = [
+            "FECHA",
+            "CÃDIGO AS400",
+            "CÃDIGO SAP",
+            "DESCRIPCIÃN",
+            "ESTADO",
+            "TIENDA",
+                "UNIDADES"
+            ]
+            
+        nuevas_columnas = ["FECHA", "SKU AS400", "SKU SAP", "DESCRIPCION", "ESTADO", "TIENDA", "UNIDADES"]
+        renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
+
+        df.rename(columns=renombre, inplace=True)
+        df = df[nuevas_columnas]    
         return df
 
+    def read_stock(self, pathfile:Path) -> DataFrame:
+        with pyzipper.AESZipFile(pathfile, mode='r') as rf:
+                
+                # Buscar archivos CSV dentro del RAR
+                rf.setpassword(b'20600768043')
+                archivos_csv = [f for f in rf.namelist() if f.endswith('.csv')]
+                
+                if not archivos_csv:
+                    raise ValueError("No se encontró ningún archivo CSV dentro del RAR")
+                
+                # Tomar el primer CSV encontrado
+                nombre_csv = archivos_csv[0]
+                
+                # Abrir el CSV directamente sin extraerlo al disco
+                with rf.open(nombre_csv, pwd=b'20600768043') as archivo:
+                    df = pd.read_csv(archivo, sep=';', encoding='latin1')
+                
+                return df
 class TottusNormalizer(Normalizer):
     def read(self, pathdir:Path) -> list[DataFrame]:
         if pathdir.is_file():
