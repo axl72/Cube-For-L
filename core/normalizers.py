@@ -20,19 +20,25 @@ class EstilosNormalizer(Normalizer):
             return [df]
 
     
-    def normalize_sells(self, df:DataFrame):
+    def normalize_sells(self, df:DataFrame, date):
+
+        date = pd.to_datetime(date, format="%d/%m/%Y")
+        print("El datetime es: ", date)
         df["Venta UN AAc"] = pd.to_numeric(df["Venta UN AAc"], errors="coerce").fillna(0)
         df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
-        df["Fecha"] = pd.to_datetime("2026-01-" + df["DiaMes"].astype(str), format="%Y-%m-%d")
+        df["Fecha"] = pd.to_datetime(date.strftime("%Y-%m-") + df["DiaMes"].astype(str), format="%Y-%m-%d")
         df = df[["Fecha", "Sku", "Descripcion", "Tienda", "Venta UN AAc", "Venta Neta AAc"]]
         df = df[df["Venta UN AAc"] > 0]
+        df = df.sort_values(by="Fecha", ascending=True)
         df = df.reset_index(drop=True)
+
         return df
     
     def normalize_stock(self, df:DataFrame, date):
         df = df.copy()
+        date = pd.to_datetime(date)
         df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
-        df["Fecha"] = pd.to_datetime("2026-01-" + df["DiaMes"].astype(str), format="%Y-%m-%d")
+        df["Fecha"] = pd.to_datetime(date.strftime("%Y-%m-") + df["DiaMes"].astype(str), format="%Y-%m-%d")
         max_dia = pd.to_numeric(df["DiaMes"], errors="coerce").max()
         # Convertir stock a numérico
         df["Stk UN Empresa"] = pd.to_numeric(df["Stk UN Empresa"], errors="coerce").fillna(0)
@@ -72,7 +78,7 @@ class OechsleNormalizer(Normalizer):
             
             return [df]
 
-    def normalize_sells(self, df:DataFrame):
+    def normalize_sells(self, df:DataFrame, date):
         df = df.rename(columns={'PERIODO': 'FECHA'})
         df['FECHA'] = pd.to_datetime(df['FECHA'])
         df = df[df['VTA_PERIODO_UNID'] != 0]
@@ -93,7 +99,7 @@ class OechsleNormalizer(Normalizer):
         nuevas_columnas = ["fecha", "sku", "cod_intek", "descripcion", "marca", "estado","cod_local", "descripcion_local", "stock", "transito", "stock_no_disponible", "asignado"]
         renombre = {clave:valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
-
+        df["cod_local"] = df["cod_local"].astype(str).str.strip().str.replace(r"\s+", " ", regex=True) # Aplica la función espacios a la columna cod_local
         df["stock"] = df["stock"].apply(lambda x: x if x > 0 else 0) 
         df["transito"] = df["transito"].apply(lambda x: x if x > 0 else 0)
         df["stock_no_disponible"] = df["stock_no_disponible"].apply(lambda x: x if x > 0 else 0)
@@ -117,7 +123,7 @@ class RipleyNormalizer(Normalizer):
         df_list = [pd.read_excel(path, header=None) for path in pathdir.iterdir() if str(path.absolute()).endswith('.xlsx')]
         return df_list
 
-    def normalize_sells(self, df:DataFrame):
+    def normalize_sells(self, df:DataFrame, date):
         """Funcion que sirve para normalizar un dataframe de Ripley. Normalizar implica que el archivo descargado del B2B de ripley quede en forma normal para el análisis."""
         target_columns = ["Fecha","Codigo Sucursal", "Codigo Modelo", "Venta S/.", "Venta Unid.", "Costo Venta Actual"]
         extrae = lambda x, y: df.iloc[x, y]
@@ -235,7 +241,7 @@ class TaiLoyNormalizer(Normalizer):
         
         # return result
 
-    def normalize_sells(self, df:DataFrame):
+    def normalize_sells(self, df:DataFrame, date):
 
         df.rename(columns={'FECHA INICIAL': 'FECHA', 'ALMACEN TIENDA': 'ALM', "CÃDIGO AS400": "AS400", "CÃDIGO SAP": "SAP", "DESCRIPCIÃN": "DESCRIPCION"}, inplace=True)
         df['FECHA'] = pd.to_datetime(df['FECHA'], format='%Y%m%d')
@@ -317,7 +323,7 @@ class TottusNormalizer(Normalizer):
         df =  pd.read_csv(pathfile, sep=',', encoding='latin1')
         return df
 
-    def normalize_sells(self, df:DataFrame) -> DataFrame:
+    def normalize_sells(self, df:DataFrame, date) -> DataFrame:
         df = df.drop(df.columns[[1, 2, 3, 4, 11, 12, 13]], axis=1)
         target_columns = ["Historic Sales Tot Pe Fecha Date", "Historic Sales Tot Pe Cod Ean", "Historic Sales Tot Pe Cod SKU", "Historic Sales Tot Pe Desc SKU", "Historic Sales Tot Pe Cod Marca", "Historic Sales Tot Pe Cod Localfisico", "Historic Sales Tot Pe Desc Localfisico", "Historic Sales Tot Pe Qty", "Historic Sales Tot Pe Venta Bruta", "Historic Sales Tot Pe Venta Neta"]
         df = df[target_columns]
@@ -376,16 +382,16 @@ class SagaNormalizer(Normalizer):
     def read(self, pathdir:Path):
         print(f"Leyendo archivo {pathdir}")
         if pathdir.is_file():
-            df = pd.read_csv(pathdir, sep=',', encoding='latin1')
+            df = pd.read_csv(pathdir, sep=',', encoding='latin1', decimal=',', thousands='.')
             return [df]
 
         df_list = []
         for path in pathdir.iterdir():
-            df =  pd.read_csv(path, sep=',', encoding='latin1')
+            df =  pd.read_csv(path, sep=',', encoding='latin1', decimal=',', thousands='.')
             df_list.append(df)
         return df_list
     
-    def normalize_sells(self, df:pd.DataFrame):
+    def normalize_sells(self, df:pd.DataFrame, date):
         df = df.drop(df.columns[[1, 2, 3, 4, 9, 12, 13, 14]], axis=1)
         df["Fecha"] = pd.to_datetime(df["Fecha"], format="%Y-%m-%d")
         df = df.sort_values("Fecha").reset_index(drop=True)
@@ -410,7 +416,8 @@ class SagaNormalizer(Normalizer):
         df.rename(columns=renombre, inplace=True)
         df = df[~df["descripcion_producto"].str.startswith("DV_", na=False)]
         cols = ["venta_publico", "timbrado", "venta_costo"]
-        df[cols] = df[cols].replace(',', '.', regex=True).astype(float)
+        # df[cols] = df[cols].replace(',', '.', regex=True).astype(float)
+        df[cols] = df[cols].astype(float)
         return df
 
     def __str__(self):
@@ -420,7 +427,7 @@ class SagaNormalizer(Normalizer):
     
     def read_stock(self, pathfile:Path) -> DataFrame:
         print(f"Leyendo archivo {pathfile}")
-        df =  pd.read_csv(pathfile, sep=',', encoding='latin1', header=0)
+        df =  pd.read_csv(pathfile, sep=',', encoding='latin1', header=0, decimal=',', thousands='.')
         return df
 
     def normalize_stock(self, df:DataFrame, date) -> DataFrame:
@@ -459,7 +466,7 @@ class CencosudNormalizer(Normalizer):
             
             return [df]
 
-    def normalize_sells(self, df:DataFrame):
+    def normalize_sells(self, df:DataFrame, date):
         df = df.rename(columns={'PERIODO': 'FECHA'})
         df['FECHA'] = pd.to_datetime(df['FECHA'])
         df = df[df['VTA_PERIODO(u)'] != 0]

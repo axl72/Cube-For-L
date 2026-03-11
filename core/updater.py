@@ -12,10 +12,10 @@ class Updater():
     def __init__(self, output_path: Path):
         self.output_path = output_path
 
-    def consolidate_sells(self, path: Path, normalizer:Normalizer, name = f"OUTPUT.xlsx") -> None:
+    def consolidate_sells(self, path: Path, normalizer:Normalizer, name = f"OUTPUT.xlsx", date=None) -> None:
         try:
             df_list = normalizer.read(path)
-            df_list = [normalizer.normalize_sells(df) for df in df_list]
+            df_list = [normalizer.normalize_sells(df, date) for df in df_list]
             result_df = pd.concat(df_list)
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
@@ -27,6 +27,7 @@ class Updater():
             print("Valor del path despues de guardar: ", path)
             return path
         except Exception as e:
+            print(e)
             raise Exception(f"Algo fue mal {e}")
 
     def create_stock(self, path: Path, normalizer:Normalizer, name = f"STOCK-OUTPUT.xlsx", date= None) -> None:

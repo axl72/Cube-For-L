@@ -133,7 +133,7 @@ class MainWindow(tkinter.Tk):
         try:
             updater = Updater(OUTPUT_PATH)
             filename = f"OUTPUT-{normalizer}.xlsx"
-            output_path = updater.consolidate_sells(path, normalizer, filename)
+            output_path = updater.consolidate_sells(path, normalizer, filename, self.var_fecha.get())
             response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
             output_path = Path(OUTPUT_PATH) / output_path
             if response:
@@ -144,7 +144,7 @@ class MainWindow(tkinter.Tk):
 
     def create_output_stock(self, normalizer, path:Path):
         try:
-            updater = Updater()
+            updater = Updater(OUTPUT_PATH)
             filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
             output_path = updater.create_stock(path, normalizer, filename, self.var_fecha.get())
             print("Stock creado con exito")

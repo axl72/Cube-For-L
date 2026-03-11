@@ -2,13 +2,16 @@ import sys
 import getpass
 from pathlib import Path
 import json
+import os
 
 sys.path.append('C:\\Users\\USUARIO\\Desktop\\INTEK\\updata_database')
 
 USER = getpass.getuser()
+documents_path = Path.home() / "Documents"
+CONFIG_PATH = Path(documents_path) / "config.json"
 class AppConfig:
 
-    _config_file = Path("config.json")
+    _config_file = Path(CONFIG_PATH)
     _data = {}
 
     @classmethod
