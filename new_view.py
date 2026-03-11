@@ -13,7 +13,7 @@ import os
 from tkcalendar import Calendar, DateEntry
 from datetime import date, timedelta
 from config import AppConfig
-
+#
 AppConfig.load()
 
 # Ahora ya puedes usarla
