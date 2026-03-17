@@ -1,0 +1,7 @@
+from .estilos_normalizer import EstilosNormalizer
+from .falabella_normalizer import FalabellaNormalizer
+from .cencosud_normalizer import CencosudNormalizer
+from .oechsle_normalizer import OechsleNormalizer
+from .ripley_normalizer import RipleyNormalizer
+from .tailoy_normalizer import TaiLoyNormalizer
+from .tottus_normalizer import TottusNormalizer
