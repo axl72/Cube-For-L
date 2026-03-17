@@ -21,3 +21,29 @@ class EstilosNormalizer(Normalizer):
         df = df.sort_values(by="Fecha", ascending=True)
         df = df.reset_index(drop=True)
 
+        return df
+    
+    def normalize_stock(self, df:DataFrame, date):
+        df = df.copy()
+        date = pd.to_datetime(date)
+        df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
+        df["Fecha"] = pd.to_datetime(date.strftime("%Y-%m-") + df["DiaMes"].astype(str), format="%Y-%m-%d")
+        max_dia = pd.to_numeric(df["DiaMes"], errors="coerce").max()
+        # Convertir stock a numérico
+        df["Stk UN Empresa"] = pd.to_numeric(df["Stk UN Empresa"], errors="coerce").fillna(0)
+        
+        df = df[df["DiaMes"] == max_dia].copy()
+        
+        
+        # Seleccionar solo las columnas que interesan
+        df = df[["Fecha", "Sku", "Descripcion", "Tienda", "Stk UN Empresa"]]
+        df = df.reset_index(drop=True)
+        return df 
+    
+    def __str__(self):
+        return "ESTILOS"
+
+    def read_stock(self, pathfile:Path) -> DataFrame:
+        df = pd.read_excel(pathfile)
+        df = df.iloc[:-1].copy()
+        return df
