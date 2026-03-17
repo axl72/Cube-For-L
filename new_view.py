@@ -188,5 +188,6 @@ class MainWindow(tkinter.Tk):
         print("Fecha seleccionada: ", self.var_fecha.get())
 
 
-root = MainWindow()
-root.mainloop() # app
+if __name__ == "__main__":
+    root = MainWindow()
+    root.mainloop() # app
