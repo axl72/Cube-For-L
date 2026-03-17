@@ -1,28 +1,105 @@
 import tkinter
+import traceback
 import datetime
 from tkinter import Frame, StringVar
 from tkinter.ttk import Button, Notebook, Style
 from tkinter.ttk import Combobox, Separator
-from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, SagaNormalizer, EstilosNormalizer 
+from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, SagaNormalizer, EstilosNormalizer, CencosudNormalizer
 from core.updater import Updater
 from util.whateveryouchooser import Chooser
 from pathlib import Path
 from tkinter import messagebox
 import os
-from config import ICON_PATH
+from tkcalendar import Calendar, DateEntry
+from datetime import date, timedelta
+from config import AppConfig
+#
+AppConfig.load()
 
+# Ahora ya puedes usarla
+output_path = AppConfig.get_output_path()
+print("Output path:", output_path)
+
+OUTPUT_PATH = AppConfig.get_output_path()
+ICON_PATH = AppConfig.get_icon_path()
 
 class MainWindow(tkinter.Tk):
     def __init__(self, screenName: str | None = None, baseName: str | None = None, className: str = "Tk", useTk: bool = True, sync: bool = False, use: str | None = None) -> None:
         super().__init__(screenName, baseName, className, useTk, sync, use)
-        self.geometry("430x300")
+    # Inicializa configuración
+ 
 
-        self.tottus_normalizer = TottusNormalizer()
-        self.oechsle_normalizer = OechsleNormalizer()
-        self.ripley_normalizer = RipleyNormalizer()
-        self.tailoy_normalizer = TaiLoyNormalizer()
-        self.estilos_normalizer = EstilosNormalizer()
-        self.saga_normalizer = SagaNormalizer()
+        self.geometry("300x470")
+        self.is_directory = tkinter.BooleanVar(value=False)
+        # self.resizable(False, False)
+
+        self.normalizers = {
+            "TOTTUS": TottusNormalizer(),
+            "RIPLEY": RipleyNormalizer(),
+            "OECHSLE": OechsleNormalizer(),
+            "TAI LOY": TaiLoyNormalizer(),
+            "ESTILOS": EstilosNormalizer(),
+            "SAGA FALABELLA": SagaNormalizer(),
+            "CENCOSUD": CencosudNormalizer()
+        }
+        ayer = date.today() - datetime.timedelta(days=1)
+        self.var_fecha = tkinter.StringVar(
+            value=ayer.strftime("%d/%m/%Y")
+        )
+        self.cal = DateEntry(
+            self,
+            textvariable=self.var_fecha,
+            width=12,
+            background='darkblue',
+            foreground='white',
+            borderwidth=2,
+            date_pattern='dd/mm/yyyy',  # formato de fecha
+        )
+        self.cal.set_date(ayer)
+        self.cal.bind("<<DateEntrySelected>>", self.on_date_change)
+        self.cal.configure(state="readonly")
+        self.archive_selected = tkinter.Label(self, text="Seleccione un archivo")
+        self.var_input_archive_selected = tkinter.StringVar(value="")
+        self.label_select_output = tkinter.Label(self, text="Seleccione carpeta de salida")
+
+        self.frame_input = Frame(self)
+        self.frame_output = Frame(self)
+        self.input_selector = tkinter.Entry(self.frame_input, width=40, textvariable=self.var_input_archive_selected)
+        self.button_input = Button(self.frame_input, text="...", command=lambda: self.__select__(self.is_directory.get()))
+        self.check_button = tkinter.Checkbutton(self, text="Es un directorio", variable=self.is_directory, onvalue=True, offvalue=False)
+        self.comboBox_clients = Combobox(self, values=list(self.normalizers.keys()), state='readonly', width=45)
+        self.comboBox_clients.current(0)
+        self.button_generate_sells = Button(self, text="GENERAR VENTAS", width=40, command=lambda: self.create_output_ventas(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))
+        self.button_generate_inventory = Button(self, text="GENERAR STOCK", width=40, command=lambda: self.create_output_stock(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))    
+        
+        self.input_selector_2 = tkinter.Entry(self.frame_output, width=40)
+        self.input_selector_2.insert(0, OUTPUT_PATH)
+        self.button_input_2 = Button(self.frame_output, text="...", command=lambda: self.__select_directory__())
+
+
+
+        self.input_selector.pack(side="left")
+
+        self.frame_input.pack(pady=2, padx=10, anchor="w")
+        self.label_select_output.pack(pady=2, padx=10, anchor="w")  
+        self.frame_output.pack(pady=2, padx=10, anchor="w")
+        
+        self.input_selector.pack(pady=2, padx=2, anchor="w")
+        self.button_input.pack(padx=2, pady=2, anchor="w")
+
+        self.input_selector_2.pack(side="left")
+        self.button_input_2.pack(padx=2, pady=2, anchor="w")
+        
+        self.check_button.pack(pady=2, padx=10, anchor="e")
+        self.comboBox_clients.pack(pady=2, padx=10, anchor="w")
+        self.cal.pack(padx=10, pady=4, fil="x")
+
+        self.label_select_client = tkinter.Label(self, text="Cliente seleccionado")
+        self.button_generate_sells.pack(pady=2, padx=10, anchor="w", fill="x")
+        self.button_generate_inventory.pack(pady=2, padx=10, anchor="w", fill="x")
+
+
+
 
         # This line only works in Windows :(
         try:
@@ -36,131 +113,58 @@ class MainWindow(tkinter.Tk):
         # except Exception as e:
         #     print("No se puedo cargar la imagen")
 
-        self.title("Updater")
+        self.title("ORBACLUAP")
 
-        nb = Notebook()
 
-        nb.add(self.__create_tottus_frame__(nb), text="TOTTUS")
-        nb.add(self.__create_ripley_frame__(nb), text="RIPLEY")
-        nb.add(self.__create_oechsle_frame__(nb), text="OECHSLE")
-        nb.add(self.__create_tailoy_frame__(nb), text="TAI LOY")
-        nb.add(self.__create_estilos_frame__(nb), text="ESTILOS")
-        nb.add(self.__create_saga_frame__(nb), text="SAGA FALABELLA")
-
-        nb.pack(fill='both', expand='yes')
-
-    def __create_tottus_frame__(self, parent):
-        frame_tottus = Frame(parent)
-        sells_function = lambda: self.create_output_ventas(self.tottus_normalizer)
-        stock_function = lambda: self.create_output_stock(self.tottus_normalizer)
-
-        sells_button = Button(frame_tottus, text="GENERAR VENTAS", command=sells_function, width=40)
-        stock_button = Button(frame_tottus, text="GENERAR STOCK", command=stock_function, width=40)
-
-        sells_button.pack(padx=5, pady=5)
-        stock_button.pack(padx=5, pady=5)
-        return frame_tottus
-    
-    def __create_ripley_frame__(self, parent):
-        frame_ripley = Frame(parent)
-        sells_function = lambda: self.create_output_ventas(self.ripley_normalizer)
-        stock_function = lambda: self.create_output_stock(self.ripley_normalizer)
-
-        sells_button = Button(frame_ripley, text="GENERAR VENTAS", command=sells_function, width=40)
-        sells_stock = Button(frame_ripley, text="GENERAR STOCK", command=stock_function, width=40)
-        oc_button = Button(frame_ripley, text="NORMALIZAR OC")
-
-        sells_button.pack(padx=7, pady=7)
-        sells_stock.pack(padx=7, pady=7)
-        oc_button.pack(padx=7, pady=7)
-        return frame_ripley
-    
-    def __create_oechsle_frame__(self, parent):
-        oechsle_frame = Frame(parent)
-        return oechsle_frame
-
-    def __create_tailoy_frame__(self, parent):
-        style = Style().configure("TButton", padding=6, relief="flat",
-            background="#ccc")
-        tailoy_frame = Frame(parent)
-        sells_function = lambda: self.create_output_ventas(self.tailoy_normalizer)
-        sells_button = Button(tailoy_frame, text="GENERAR VENTAS", command=sells_function, width=40)
-        sells_button.pack(padx=5, pady=5)
-        stock_function = lambda: self.create_output_stock(self.tailoy_normalizer)
-        stock_button = Button(tailoy_frame, text="GENERAR STOCK", command=stock_function, width=40)
-        stock_button.pack(padx=7, pady=7)
-        return tailoy_frame
-    
-    def __create_estilos_frame__(self, parent):
-        estilos_frame = Frame(parent)
-        sells_function = lambda: self.create_output_ventas(self.estilos_normalizer)
-        stock_funciont = lambda: self.create_output_stock(self.estilos_normalizer)
-     
-        sells_button = Button(estilos_frame, text="GENERAR VENTAS", command=sells_function, width=40)
-        stock_button = Button(estilos_frame, text="GENERAR STOCK", command=stock_funciont, width=40)
-
-        sells_button.pack(padx=7, pady=7)
-        stock_button.pack(padx=7, pady=7)
-
-        return estilos_frame
-    
-    def __create_saga_frame__(self, parent):
-        def on_combobox_change(event):
-            # Acceder al valor seleccionado en el Combobox
-            self.saga_normalizer.year = year.get()
-            # Mostrar el valor seleccionado en la etiqueta
-
-        saga_frame = Frame(parent)
-        current_year = datetime.datetime.now().year
-        year = tkinter.IntVar(value=current_year)
-        SagaNormalizer.year = year.get()
-        combobox = Combobox(saga_frame, values=[year for year in range(current_year, 1999, -1)], state='readonly', textvariable=year, width=45)
-        combobox.bind("<<ComboboxSelected>>", on_combobox_change)
-        sells_function = lambda: self.create_output_ventas(self.saga_normalizer)
-        sells_button = Button(saga_frame, text="GENERAR VENTAS", command=sells_function, width=40)
-        combobox.pack(padx=7, pady=7)
-        sells_button.pack(padx=7, pady=7)
-
-        stock_function = lambda: self.create_output_stock(self.saga_normalizer)
-        stock_button = Button(saga_frame, text="GENERAR STOCK", width=40, command=stock_function)
-        stock_button.pack(padx=7, pady=7)
-
-        return saga_frame
+    def get_normalizer_seleccionado(self):
+        nombre = self.comboBox_clients.get()
+        normalizer = self.normalizers[nombre]
+        print(f"Normalizar seleccionado {normalizer}")
+        return normalizer
 
     def __open_excel__(self, path):
+        print("Abriendo archivo: ", path)
         os.startfile(path)
 
+    def generate_sells(self):
+        pass
         
-    def create_output_ventas(self, normalizer):
+    def create_output_ventas(self, normalizer, path:Path):
         try:
-            path = self.__select_directory__()
-            if not path:
-                return
-            updater = Updater()
+            updater = Updater(OUTPUT_PATH)
             filename = f"OUTPUT-{normalizer}.xlsx"
-            path = updater.consolidate_sells(path, normalizer, filename)
-            print("Ventas creado con exito")
-            response = messagebox.askyesno("Terminado", f"Archivo {path.name} creado con éxito ¿Abrir?")
+            output_path = updater.consolidate_sells(path, normalizer, filename, self.var_fecha.get())
+            response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
+            output_path = Path(OUTPUT_PATH) / output_path
             if response:
-                self.__open_excel__(path)
+                self.__open_excel__(output_path)
         except Exception as e:
-            messagebox.showerror(message="Algo fue mal")
+            traceback.print_exc()
+            messagebox.showerror(message=f"Problema al generar las ventas: {e}")
 
-    def create_output_stock(self, normalizer):
+    def create_output_stock(self, normalizer, path:Path):
         try:
-            path = self.__select_file__()
-            if not path:
-                return
-            updater = Updater()
+            updater = Updater(OUTPUT_PATH)
             filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
-            path = updater.create_stock(path, normalizer, filename)
+            output_path = updater.create_stock(path, normalizer, filename, self.var_fecha.get())
             print("Stock creado con exito")
-            response = messagebox.askyesno("Terminado", f"Archivo {path.name} creado con éxito ¿Abrir?")
+            response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
+            output_path = Path(OUTPUT_PATH) / output_path
             if response:
-                self.__open_excel__(path)
+                self.__open_excel__(output_path)
         except Exception as e:
-            messagebox.showerror(message="Algo fue mal")
+            traceback.print_exc()
+            messagebox.showerror(message=f"Problema al generar el stock: {e}")
             
+    
+    def __select__(self, is_directory: bool) -> Path:
+        
+        if is_directory:
+            path = self.__select_directory__()
+        else:
+            path =self.__select_file__()
+        self.var_input_archive_selected.set(str(path))
+        return path
 
     
     def __select_directory__(self) -> Path:
@@ -178,7 +182,12 @@ class MainWindow(tkinter.Tk):
             return
         file = Path(selected_file)
         return file
+    
+    def on_date_change(self, event):
+        self.var_fecha.set(self.cal.get())
+        print("Fecha seleccionada: ", self.var_fecha.get())
 
-root = MainWindow()
-root.mainloop() # app
 
+if __name__ == "__main__":
+    root = MainWindow()
+    root.mainloop() # app
