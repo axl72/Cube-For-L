@@ -29,6 +29,10 @@ class TottusNormalizer(Normalizer):
     def normalize_sells(self, df:DataFrame, date) -> DataFrame:
         df = df.drop(df.columns[[1, 2, 3, 4, 11, 12, 13]], axis=1)
         target_columns = ["Historic Sales Tot Pe Fecha Date", "Historic Sales Tot Pe Cod Ean", "Historic Sales Tot Pe Cod SKU", "Historic Sales Tot Pe Desc SKU", "Historic Sales Tot Pe Cod Marca", "Historic Sales Tot Pe Cod Localfisico", "Historic Sales Tot Pe Desc Localfisico", "Historic Sales Tot Pe Qty", "Historic Sales Tot Pe Venta Bruta", "Historic Sales Tot Pe Venta Neta"]
+        tager_columns_2 = ["Fecha Date", "Cod Ean", "Cod SKU", "Desc SKU", "Cod Marca", "Cod Localfisico", "Desc Localfisico", "Venta en Unidades", "Venta Bruta", "Venta Neta"]
+        # Corregir esta condicional
+        if not all(col in df.columns for col in target_columns):
+           raise ValueError(f"El DataFrame no contiene todas las columnas necesarias. Columnas faltantes: {[col for col in target_columns if col not in df.columns]}")
         df = df[target_columns]
         nuevas_columnas = ['date', 'upc','sku', 'descripcion_producto', 'marca', 'cod_local', 'local', 'venta_unidades', "venta_publico", "timbrado"]
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
