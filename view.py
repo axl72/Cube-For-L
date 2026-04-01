@@ -4,7 +4,7 @@ import datetime
 from tkinter import Frame, StringVar
 from tkinter.ttk import Button, Notebook, Style
 from tkinter.ttk import Combobox, Separator
-from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, SagaNormalizer, EstilosNormalizer, CencosudNormalizer
+from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, FalabellaNormalizer, EstilosNormalizer, CencosudNormalizer
 from core.updater import Updater
 from util.whateveryouchooser import Chooser
 from pathlib import Path
@@ -39,7 +39,7 @@ class MainWindow(tkinter.Tk):
             "OECHSLE": OechsleNormalizer(),
             "TAI LOY": TaiLoyNormalizer(),
             "ESTILOS": EstilosNormalizer(),
-            "SAGA FALABELLA": SagaNormalizer(),
+            "SAGA FALABELLA": FalabellaNormalizer(),
             "CENCOSUD": CencosudNormalizer()
         }
         ayer = date.today() - datetime.timedelta(days=1)

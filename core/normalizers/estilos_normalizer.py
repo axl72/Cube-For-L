@@ -20,4 +20,9 @@ class EstilosNormalizer(Normalizer):
         df = df[df["Venta UN AAc"] > 0]
         df = df.sort_values(by="Fecha", ascending=True)
         df = df.reset_index(drop=True)
-
+    
+    def normalize_stock(self, df):
+        pass
+    
+    def read_stock(self, df):
+        pass
