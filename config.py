@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import os
 
-sys.path.append('C:\\Users\\USUARIO\\Desktop\\INTEK\\updata_database')
+# sys.path.append('C:\\Users\\USUARIO\\Desktop\\INTEK\\updata_database')
 
 USER = getpass.getuser()
 documents_path = Path.home() / "Documents"
@@ -17,10 +17,12 @@ class AppConfig:
     @classmethod
     def load(cls):
         if not cls._config_file.exists():
+            print("Config file not found. Creating default config.")
             cls._create_default_config()
 
         with open(cls._config_file, "r", encoding="utf-8") as f:
             cls._data = json.load(f)
+            print(f"Config loaded: {cls._data}")
 
         # Si OUTPUT_PATH está vacío lo genera automáticamente
         if not cls._data.get("OUTPUT_PATH"):

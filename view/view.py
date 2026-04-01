@@ -4,8 +4,7 @@ import datetime
 from tkinter import Frame, StringVar
 from tkinter.ttk import Button, Notebook, Style
 from tkinter.ttk import Combobox, Separator
-from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, FalabellaNormalizer, EstilosNormalizer, CencosudNormalizer
-from core.updater import Updater
+from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, FalabellaNormalizer, EstilosNormalizer, CencosudNormalizer, IlahuiNormalizer
 from util.whateveryouchooser import Chooser
 from pathlib import Path
 from tkinter import messagebox
@@ -20,8 +19,7 @@ AppConfig.load()
 output_path = AppConfig.get_output_path()
 print("Output path:", output_path)
 
-OUTPUT_PATH = AppConfig.get_output_path()
-ICON_PATH = AppConfig.get_icon_path()
+
 
 class MainWindow(tkinter.Tk):
     def __init__(self, screenName: str | None = None, baseName: str | None = None, className: str = "Tk", useTk: bool = True, sync: bool = False, use: str | None = None) -> None:
@@ -33,15 +31,7 @@ class MainWindow(tkinter.Tk):
         self.is_directory = tkinter.BooleanVar(value=False)
         # self.resizable(False, False)
 
-        self.normalizers = {
-            "TOTTUS": TottusNormalizer(),
-            "RIPLEY": RipleyNormalizer(),
-            "OECHSLE": OechsleNormalizer(),
-            "TAI LOY": TaiLoyNormalizer(),
-            "ESTILOS": EstilosNormalizer(),
-            "SAGA FALABELLA": FalabellaNormalizer(),
-            "CENCOSUD": CencosudNormalizer()
-        }
+
         ayer = date.today() - datetime.timedelta(days=1)
         self.var_fecha = tkinter.StringVar(
             value=ayer.strftime("%d/%m/%Y")
@@ -67,13 +57,11 @@ class MainWindow(tkinter.Tk):
         self.input_selector = tkinter.Entry(self.frame_input, width=40, textvariable=self.var_input_archive_selected)
         self.button_input = Button(self.frame_input, text="...", command=lambda: self.__select__(self.is_directory.get()))
         self.check_button = tkinter.Checkbutton(self, text="Es un directorio", variable=self.is_directory, onvalue=True, offvalue=False)
-        self.comboBox_clients = Combobox(self, values=list(self.normalizers.keys()), state='readonly', width=45)
-        self.comboBox_clients.current(0)
+        self.comboBox_clients = Combobox(self, state='readonly', width=45)
         self.button_generate_sells = Button(self, text="GENERAR VENTAS", width=40, command=lambda: self.create_output_ventas(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))
         self.button_generate_inventory = Button(self, text="GENERAR STOCK", width=40, command=lambda: self.create_output_stock(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))    
         
         self.input_selector_2 = tkinter.Entry(self.frame_output, width=40)
-        self.input_selector_2.insert(0, OUTPUT_PATH)
         self.button_input_2 = Button(self.frame_output, text="...", command=lambda: self.__select_directory__())
 
 
@@ -115,47 +103,21 @@ class MainWindow(tkinter.Tk):
 
         self.title("ORBACLUAP")
 
+    def set_input_selector_2(self, text):
+        self.input_selector_2.delete(0, tkinter.END)
+        self.input_selector_2.insert(0, text)
 
     def get_normalizer_seleccionado(self):
         nombre = self.comboBox_clients.get()
         normalizer = self.normalizers[nombre]
         print(f"Normalizar seleccionado {normalizer}")
         return normalizer
+    
+    def get_date(self):
+        return self.var_fecha.get()
 
-    def __open_excel__(self, path):
-        print("Abriendo archivo: ", path)
-        os.startfile(path)
 
-    def generate_sells(self):
-        pass
-        
-    def create_output_ventas(self, normalizer, path:Path):
-        try:
-            updater = Updater(OUTPUT_PATH)
-            filename = f"OUTPUT-{normalizer}.xlsx"
-            output_path = updater.consolidate_sells(path, normalizer, filename, self.var_fecha.get())
-            response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
-            output_path = Path(OUTPUT_PATH) / output_path
-            if response:
-                self.__open_excel__(output_path)
-        except Exception as e:
-            traceback.print_exc()
-            messagebox.showerror(message=f"Problema al generar las ventas: {e}")
 
-    def create_output_stock(self, normalizer, path:Path):
-        try:
-            updater = Updater(OUTPUT_PATH)
-            filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
-            output_path = updater.create_stock(path, normalizer, filename, self.var_fecha.get())
-            print("Stock creado con exito")
-            response = messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
-            output_path = Path(OUTPUT_PATH) / output_path
-            if response:
-                self.__open_excel__(output_path)
-        except Exception as e:
-            traceback.print_exc()
-            messagebox.showerror(message=f"Problema al generar el stock: {e}")
-            
     
     def __select__(self, is_directory: bool) -> Path:
         
@@ -187,6 +149,23 @@ class MainWindow(tkinter.Tk):
         self.var_fecha.set(self.cal.get())
         print("Fecha seleccionada: ", self.var_fecha.get())
 
+    def set_combobox_values(self, normalizers:dict):
+        self.comboBox_clients["values"] = list(normalizers.keys())
+    
+        if normalizers:
+            self.comboBox_clients.current(0)
+
+    def set_on_generate_sells(self, callback):
+        self.button_generate_sells.config(command=callback)
+
+    def set_on_generate_inventory(self, callback):
+        self.button_generate_inventory.config(command=callback)
+    
+    def get_normalizer(self):
+        return self.comboBox_clients.get()
+    
+    def show_success(self, filename):
+        return messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
 
 if __name__ == "__main__":
     root = MainWindow()
