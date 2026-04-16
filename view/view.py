@@ -1,172 +1,135 @@
-import tkinter
-import traceback
-import datetime
-from tkinter import Frame, StringVar
-from tkinter.ttk import Button, Notebook, Style
-from tkinter.ttk import Combobox, Separator
-from core.normalizers import TottusNormalizer, TaiLoyNormalizer, RipleyNormalizer, OechsleNormalizer, FalabellaNormalizer, EstilosNormalizer, CencosudNormalizer, IlahuiNormalizer
-from util.whateveryouchooser import Chooser
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
-from tkinter import messagebox
-import os
-from tkcalendar import Calendar, DateEntry
 from datetime import date, timedelta
-from config import AppConfig
-#
-AppConfig.load()
+from tkcalendar import DateEntry
 
-# Ahora ya puedes usarla
-output_path = AppConfig.get_output_path()
-print("Output path:", output_path)
-
-
-
-class MainWindow(tkinter.Tk):
-    def __init__(self, screenName: str | None = None, baseName: str | None = None, className: str = "Tk", useTk: bool = True, sync: bool = False, use: str | None = None) -> None:
-        super().__init__(screenName, baseName, className, useTk, sync, use)
-    # Inicializa configuración
- 
-
-        self.geometry("300x470")
-        self.is_directory = tkinter.BooleanVar(value=False)
-        # self.resizable(False, False)
-
-
-        ayer = date.today() - datetime.timedelta(days=1)
-        self.var_fecha = tkinter.StringVar(
-            value=ayer.strftime("%d/%m/%Y")
-        )
-        self.cal = DateEntry(
-            self,
-            textvariable=self.var_fecha,
-            width=12,
-            background='darkblue',
-            foreground='white',
-            borderwidth=2,
-            date_pattern='dd/mm/yyyy',  # formato de fecha
-        )
-        self.cal.set_date(ayer)
-        self.cal.bind("<<DateEntrySelected>>", self.on_date_change)
-        self.cal.configure(state="readonly")
-        self.archive_selected = tkinter.Label(self, text="Seleccione un archivo")
-        self.var_input_archive_selected = tkinter.StringVar(value="")
-        self.label_select_output = tkinter.Label(self, text="Seleccione carpeta de salida")
-
-        self.frame_input = Frame(self)
-        self.frame_output = Frame(self)
-        self.input_selector = tkinter.Entry(self.frame_input, width=40, textvariable=self.var_input_archive_selected)
-        self.button_input = Button(self.frame_input, text="...", command=lambda: self.__select__(self.is_directory.get()))
-        self.check_button = tkinter.Checkbutton(self, text="Es un directorio", variable=self.is_directory, onvalue=True, offvalue=False)
-        self.comboBox_clients = Combobox(self, state='readonly', width=45)
-        self.button_generate_sells = Button(self, text="GENERAR VENTAS", width=40, command=lambda: self.create_output_ventas(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))
-        self.button_generate_inventory = Button(self, text="GENERAR STOCK", width=40, command=lambda: self.create_output_stock(self.get_normalizer_seleccionado(), Path(self.var_input_archive_selected.get())))    
+class MainWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
         
-        self.input_selector_2 = tkinter.Entry(self.frame_output, width=40)
-        self.button_input_2 = Button(self.frame_output, text="...", command=lambda: self.__select_directory__())
-
-
-
-        self.input_selector.pack(side="left")
-
-        self.frame_input.pack(pady=2, padx=10, anchor="w")
-        self.label_select_output.pack(pady=2, padx=10, anchor="w")  
-        self.frame_output.pack(pady=2, padx=10, anchor="w")
-        
-        self.input_selector.pack(pady=2, padx=2, anchor="w")
-        self.button_input.pack(padx=2, pady=2, anchor="w")
-
-        self.input_selector_2.pack(side="left")
-        self.button_input_2.pack(padx=2, pady=2, anchor="w")
-        
-        self.check_button.pack(pady=2, padx=10, anchor="e")
-        self.comboBox_clients.pack(pady=2, padx=10, anchor="w")
-        self.cal.pack(padx=10, pady=4, fil="x")
-
-        self.label_select_client = tkinter.Label(self, text="Cliente seleccionado")
-        self.button_generate_sells.pack(pady=2, padx=10, anchor="w", fill="x")
-        self.button_generate_inventory.pack(pady=2, padx=10, anchor="w", fill="x")
-
-
-
-
-        # This line only works in Windows :(
-        try:
-            self.iconbitmap(ICON_PATH)
-        except Exception as e:
-            print("No se puedo cargar la imagen")
-
-        # This line only works in Linux
-        # try:
-        #     self.iconphoto(False, tkinter.PhotoImage(ICON_PATH))
-        # except Exception as e:
-        #     print("No se puedo cargar la imagen")
-
+        # Configuración de Ventana
         self.title("ORBACLUAP")
+        self.geometry("350x500")
+        
+        # Variables de control
+        self.is_directory = tk.BooleanVar(value=False)
+        self.var_input_path = tk.StringVar(value="")
+        self.var_output_path = tk.StringVar(value="")
+        self.normalizers = {}
 
-    def set_input_selector_2(self, text):
-        self.input_selector_2.delete(0, tkinter.END)
-        self.input_selector_2.insert(0, text)
+        # Variable de Fecha (Ayer por defecto)
+        ayer = date.today() - timedelta(days=1)
+        self.var_fecha = tk.StringVar(value=ayer.strftime("%d/%m/%Y"))
+
+        self._crear_widgets()
+        self._layout()
+
+    def _crear_widgets(self):
+        """Inicializa todos los componentes de la interfaz"""
+        
+        # Sección Origen
+        self.lbl_origen = tk.Label(self, text="Seleccione origen de datos:")
+        self.frame_input = tk.Frame(self)
+        self.entry_input = tk.Entry(self.frame_input, textvariable=self.var_input_path, width=40)
+        self.btn_input = ttk.Button(self.frame_input, text="...", width=3, command=self._seleccionar_origen)
+        self.chk_dir = tk.Checkbutton(self, text="Es un directorio", variable=self.is_directory)
+
+        # Sección Salida
+        self.lbl_destino = tk.Label(self, text="Carpeta de salida:")
+        self.frame_output = tk.Frame(self)
+        self.entry_output = tk.Entry(self.frame_output, textvariable=self.var_output_path, width=40)
+        self.btn_output = ttk.Button(self.frame_output, text="...", width=3, command=self._seleccionar_destino)
+
+        # Cliente y Fecha
+        self.lbl_cliente = tk.Label(self, text="Cliente seleccionado:")
+        self.combo_clients = ttk.Combobox(self, state='readonly')
+        
+        self.lbl_fecha_txt = tk.Label(self, text="Fecha de proceso:")
+        self.cal = DateEntry(
+            self, textvariable=self.var_fecha, date_pattern='dd/mm/yyyy',
+            background='darkblue', foreground='white', borderwidth=2
+        )
+
+        # Botones de Acción
+        self.btn_ventas = ttk.Button(self, text="GENERAR VENTAS")
+        self.btn_stock = ttk.Button(self, text="GENERAR STOCK")
+
+    def _layout(self):
+        """Organiza los widgets en la ventana"""
+        padding = {'padx': 15, 'pady': 5}
+        
+        # Origen
+        self.lbl_origen.pack(anchor="w", **padding)
+        self.frame_input.pack(fill="x", **padding)
+        self.entry_input.pack(side="left", expand=True, fill="x")
+        self.btn_input.pack(side="right", padx=(5, 0))
+        self.chk_dir.pack(anchor="e", padx=15)
+
+        # Destino
+        self.lbl_destino.pack(anchor="w", **padding)
+        self.frame_output.pack(fill="x", **padding)
+        self.entry_output.pack(side="left", expand=True, fill="x")
+        self.btn_output.pack(side="right", padx=(5, 0))
+
+        # Configuración
+        self.lbl_cliente.pack(anchor="w", **padding)
+        self.combo_clients.pack(fill="x", **padding)
+        
+        self.lbl_fecha_txt.pack(anchor="w", **padding)
+        self.cal.pack(fill="x", **padding)
+
+        # Botones finales
+        self.btn_ventas.pack(fill="x", padx=15, pady=(20, 5))
+        self.btn_stock.pack(fill="x", padx=15, pady=5)
+
+    # --- Lógica de Archivos (Reemplaza a Chooser) ---
+
+    def _seleccionar_origen(self):
+        if self.is_directory.get():
+            path = filedialog.askdirectory(title="Seleccionar Carpeta")
+        else:
+            path = filedialog.askopenfilename(title="Seleccionar Archivo")
+        
+        if path:
+            self.var_input_path.set(path)
+
+    def _seleccionar_destino(self):
+        path = filedialog.askdirectory(title="Seleccionar Carpeta de Salida")
+        if path:
+            self.var_output_path.set(path)
+
+    # --- Métodos de Interfaz (API para el Controlador) ---
+
+    def set_combobox_values(self, normalizers: dict):
+        self.normalizers = normalizers
+        self.combo_clients["values"] = list(normalizers.keys())
+        if normalizers:
+            self.combo_clients.current(0)
 
     def get_normalizer_seleccionado(self):
-        nombre = self.comboBox_clients.get()
-        normalizer = self.normalizers[nombre]
-        print(f"Normalizar seleccionado {normalizer}")
-        return normalizer
-    
+        nombre = self.combo_clients.get()
+        return self.normalizers.get(nombre)
+
     def get_date(self):
         return self.var_fecha.get()
 
-
-
-    
-    def __select__(self, is_directory: bool) -> Path:
-        
-        if is_directory:
-            path = self.__select_directory__()
-        else:
-            path =self.__select_file__()
-        self.var_input_archive_selected.set(str(path))
-        return path
-
-    
-    def __select_directory__(self) -> Path:
-        selected_directory = Chooser().select_directory()
-        if selected_directory == "":
-            print("Ningun directorio seleccionado")
-            return
-        directory = Path(selected_directory)
-        return directory
-    
-    def __select_file__(self) -> Path:
-        selected_file = Chooser().select_file()
-        if selected_file == "":
-            print("Ningun archivo seleccionado")
-            return
-        file = Path(selected_file)
-        return file
-    
-    def on_date_change(self, event):
-        self.var_fecha.set(self.cal.get())
-        print("Fecha seleccionada: ", self.var_fecha.get())
-
-    def set_combobox_values(self, normalizers:dict):
-        self.comboBox_clients["values"] = list(normalizers.keys())
-    
-        if normalizers:
-            self.comboBox_clients.current(0)
-
     def set_on_generate_sells(self, callback):
-        self.button_generate_sells.config(command=callback)
+        # El callback ahora recibirá los parámetros necesarios directamente
+        self.btn_ventas.config(command=lambda: callback(
+            self.get_normalizer_seleccionado(), 
+            Path(self.var_input_path.get())
+        ))
 
     def set_on_generate_inventory(self, callback):
-        self.button_generate_inventory.config(command=callback)
-    
-    def get_normalizer(self):
-        return self.comboBox_clients.get()
-    
+        self.btn_stock.config(command=lambda: callback(
+            self.get_normalizer_seleccionado(), 
+            Path(self.var_input_path.get())
+        ))
+
     def show_success(self, filename):
-        return messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito ¿Abrir?")
+        return messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito. ¿Desea abrirlo?")
 
 if __name__ == "__main__":
-    root = MainWindow()
-    root.mainloop() # app
+    app = MainWindow()
+    app.mainloop()
