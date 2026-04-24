@@ -46,7 +46,7 @@ class TottusNormalizer(Normalizer):
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
         cols = ["venta_publico", "timbrado"]
-        df[cols] = df[cols].replace(',', '.', regex=True).astype(float)
+        df[cols] = df[cols].replace(',', '.', regex=True).astype(float) # Esta línea tenemos que corregirla pero ya!
 
         df['date'] = pd.to_datetime(df['date'])
         df = df[df["venta_unidades"] != 0]
