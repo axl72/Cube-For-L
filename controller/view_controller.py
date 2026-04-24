@@ -8,8 +8,10 @@ from core.updater import Updater
 
 AppConfig.load()
 
-OUTPUT_PATH = AppConfig.get_output_path()
+OUTPUT_PATH = str(AppConfig.get_output_path())
+print("OUTPUT_PATH: ", OUTPUT_PATH)
 ICON_PATH = AppConfig.get_icon_path()
+print("ICON_PATH: ", ICON_PATH)
 
 class ViewController():
     def __init__(self, view=None):
@@ -48,7 +50,6 @@ class ViewController():
         self.view.set_input_selector_2(OUTPUT_PATH)
         self.view.set_on_generate_inventory(lambda n, i, o, f: self.create_output_stock(n, i, o, f))
         self.view.set_on_generate_sells(lambda n, i, o, f: self.create_output_ventas(n, i, o, f))
-        self.view.mainloop()
 
     def open_excel(self, path):
         print("Abriendo archivo: ", path)
