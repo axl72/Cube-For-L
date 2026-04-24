@@ -115,20 +115,41 @@ class MainWindow(tk.Tk):
         return self.var_fecha.get()
 
     def set_on_generate_sells(self, callback):
-        # El callback ahora recibirá los parámetros necesarios directamente
+        """
+        Configura el callback para generar ventas. 
+        La vista empaqueta y envía: (normalizador_obj, input_path, output_path, fecha)
+        """
         self.btn_ventas.config(command=lambda: callback(
-            self.get_normalizer_seleccionado(), 
-            Path(self.var_input_path.get())
+            self.get_normalizer_seleccionado(),
+            Path(self.get_input_path()),
+            Path(self.get_output_path()),
+            self.get_date()
         ))
 
     def set_on_generate_inventory(self, callback):
         self.btn_stock.config(command=lambda: callback(
-            self.get_normalizer_seleccionado(), 
-            Path(self.var_input_path.get())
+            self.get_normalizer_seleccionado(),
+            Path(self.get_input_path()),
+            Path(self.get_output_path()),
+            self.get_date()
         ))
 
     def show_success(self, filename):
         return messagebox.askyesno("Terminado", f"Archivo {filename} creado con éxito. ¿Desea abrirlo?")
+
+    def set_input_selector_2(self, text):
+        """Permite al controlador setear la ruta de salida (ej. desde un config)"""
+        self.var_output_path.set(text)
+    
+    def get_input_path(self):
+        return self.var_input_path.get()
+    
+    def get_output_path(self):
+        return self.var_output_path.get()
+    
+    def get_normalizer(self):
+        """Retorna el nombre del cliente seleccionado en el ComboBox (string)"""
+        return self.combo_clients.get()
 
 if __name__ == "__main__":
     app = MainWindow()
