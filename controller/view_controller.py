@@ -21,22 +21,18 @@ class ViewController():
         print("ViewController initialized")
     
     
-    def create_output_stock(self, path:Path):
-        name_normalizer = self.view.get_normalizer()
-        normalizer = self.normalizers[name_normalizer]
-        filename = f"STOCK-OUTPUT-{name_normalizer}.xlsx"
+    def create_output_stock(self, normalizer, path:Path, output_path:Path, fecha):
+        filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
         output_path = self.updater.create_stock(path, normalizer, filename, self.view.get_date())
         output_path = Path(OUTPUT_PATH) / output_path
         if self.view.show_success(filename):
             self.open_excel(output_path)
 
-    def create_output_ventas(self, path:Path):
+    def create_output_ventas(self, normalizer, input_path:Path, output_path:Path, fecha):
         try:
 
-            name_normalizer = self.view.get_normalizer()
-            normalizer = self.normalizers[name_normalizer]
-            filename = f"OUTPUT-{name_normalizer}.xlsx"
-            output_path = self.updater.consolidate_sells(path, normalizer, filename, self.view.get_date())
+            filename = f"OUTPUT-{self.view.get_normalizer()}.xlsx"
+            output_path = self.updater.consolidate_sells(input_path, normalizer, filename, fecha)
             output_path = Path(OUTPUT_PATH) / output_path
             if self.view.show_success(filename):
                 self.open_excel(output_path)
@@ -50,8 +46,8 @@ class ViewController():
     def run(self):
         self.view.set_combobox_values(self.normalizers)
         self.view.set_input_selector_2(OUTPUT_PATH)
-        self.view.set_on_generate_inventory(lambda: self.create_output_stock(Path(self.view.var_input_archive_selected.get())))
-        self.view.set_on_generate_sells(lambda: self.create_output_ventas(Path(self.view.var_input_archive_selected.get())))
+        self.view.set_on_generate_inventory(lambda n, i, o, f: self.create_output_stock(n, i, o, f))
+        self.view.set_on_generate_sells(lambda n, i, o, f: self.create_output_ventas(n, i, o, f))
         self.view.mainloop()
 
     def open_excel(self, path):
