@@ -7,7 +7,7 @@ from datetime import date
 class MainWindow(wx.Frame):
     def __init__(self):
         # Inicializa el Frame (Ventana)
-        super().__init__(parent=None, title="ORBACLUAP", size=(350, 520))
+        super().__init__(parent=None, title="Cube for L", size=(350, 520))
         
         # Panel principal (necesario para el color de fondo y tabulación correcta)
         self.panel = wx.Panel(self)
