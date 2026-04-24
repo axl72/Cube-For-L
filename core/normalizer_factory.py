@@ -5,7 +5,7 @@ from .normalizers.tailoy_normalizer import TaiLoyNormalizer
 from .normalizers.estilos_normalizer import EstilosNormalizer
 from .normalizers.falabella_normalizer import FalabellaNormalizer
 from .normalizers.cencosud_normalizer import CencosudNormalizer
-
+from .normalizers.ilahui_normalizer import IlahuiNormalizer
 class NormalizerFactory:
     @staticmethod
     def create_all():
@@ -16,5 +16,6 @@ class NormalizerFactory:
             "TAI LOY": TaiLoyNormalizer(),
             "ESTILOS": EstilosNormalizer(),
             "SAGA FALABELLA": FalabellaNormalizer(),
-            "CENCOSUD": CencosudNormalizer()
+            "CENCOSUD": CencosudNormalizer(),
+            "ILAHUI": IlahuiNormalizer()
         }
