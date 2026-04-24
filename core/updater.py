@@ -36,7 +36,7 @@ class Updater():
             df_result = normalizer.normalize_stock(df, date)
             if not os.path.exists(self.output_path):
                 os.makedirs(self.output_path)
-            path = path.joinpath(self.output_path, name)
+            path = Path(os.path.join(self.output_path, name))
             path = get_available_path(path)
             df_result.to_excel(path, index=False)
             return path

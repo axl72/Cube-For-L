@@ -8,7 +8,7 @@ from core.updater import Updater
 
 AppConfig.load()
 
-OUTPUT_PATH = str(AppConfig.get_output_path())
+OUTPUT_PATH = AppConfig.get_output_path()
 print("OUTPUT_PATH: ", OUTPUT_PATH)
 ICON_PATH = AppConfig.get_icon_path()
 print("ICON_PATH: ", ICON_PATH)
@@ -26,6 +26,7 @@ class ViewController():
     def create_output_stock(self, normalizer, path:Path, output_path:Path, fecha):
         filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
         output_path = self.updater.create_stock(path, normalizer, filename, self.view.get_date())
+        print("Output path: ", type(OUTPUT_PATH))
         output_path = Path(OUTPUT_PATH) / output_path
         if self.view.show_success(filename):
             self.open_excel(output_path)
@@ -47,7 +48,7 @@ class ViewController():
 
     def run(self):
         self.view.set_combobox_values(self.normalizers)
-        self.view.set_input_selector_2(OUTPUT_PATH)
+        self.view.set_input_selector_2(str(OUTPUT_PATH))
         self.view.set_on_generate_inventory(lambda n, i, o, f: self.create_output_stock(n, i, o, f))
         self.view.set_on_generate_sells(lambda n, i, o, f: self.create_output_ventas(n, i, o, f))
 

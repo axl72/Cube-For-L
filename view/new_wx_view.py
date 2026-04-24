@@ -128,10 +128,24 @@ class viewETL(wx.Panel):
             self.comboBox_clients.SetSelection(0)
 
     def set_on_generate_sells(self, callback):
-        self.button_generate_sells.Bind(wx.EVT_BUTTON, callback)
+        def handler(event):
+            callback(
+                self.get_normalizer_seleccionado(),
+                self.input_selector.GetValue(),
+                self.input_selector_2.GetValue(),
+                self.get_date()
+            )
+        self.button_generate_sells.Bind(wx.EVT_BUTTON, handler)
 
     def set_on_generate_inventory(self, callback):
-        self.button_generate_inventory.Bind(wx.EVT_BUTTON, callback)
+        def handler(event):
+            callback(
+                self.get_normalizer_seleccionado(),
+                self.input_selector.GetValue(),
+                self.input_selector_2.GetValue(),
+                self.get_date()
+            )  
+        self.button_generate_inventory.Bind(wx.EVT_BUTTON, handler)
 
     def show_success(self, filename):
         msg = f"Archivo {filename} creado con éxito ¿Abrir?"
