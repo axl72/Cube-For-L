@@ -2,6 +2,10 @@ import wx
 import wx.adv
 from datetime import date
 import datetime
+import wx.grid as gridlib
+
+from view.wx_panels.stock_panel import StockPanel
+
 
 class viewETL(wx.Panel):
     def __init__(self, parent):
@@ -169,19 +173,8 @@ class DescargasPanel(wx.Panel):
         self.SetSizer(sizer)
 
 
-class BibliotecaPanel(wx.Panel):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.SetBackgroundColour("#512AA7")
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        title = wx.StaticText(self, label="Esto es una caca")
-        title.SetForegroundColour(wx.WHITE)
-        font = title.GetFont()
-        font.PointSize += 8
-        font = font.Bold()
-        title.SetFont(font)
-        sizer.Add(title, 0, wx.ALL, 20)
-        self.SetSizer(sizer)
+
+
 
 
 class ConvertidorPanel(wx.Panel):
@@ -227,7 +220,7 @@ class MainFrame(wx.Frame):
 
         self.panels = {
             "ETL": viewETL(self.content_area),
-            "Mi Librería de Medios": BibliotecaPanel(self.content_area),
+            "STOCK": StockPanel(self.content_area),
             "Convertidor de Video": ConvertidorPanel(self.content_area),
         }
 

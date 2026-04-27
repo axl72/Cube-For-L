@@ -30,6 +30,10 @@ class AppConfig:
             default_path = Path(f"C:/Users/{user}/Desktop/REGISTROS INTEK/OUTPUTS")
             cls._data["OUTPUT_PATH"] = str(default_path)
             cls._save()
+        
+        if "STOCK_FILE_PATH" not in cls._data:
+            cls._data["STOCK_FILE_PATH"] = str(Path(f"C:/Users/{USER}/Desktop/INTEK/inventarios/INVENTARIO DISPONIBLE - 21.04.26.xlsx"))
+            cls._save()
 
     @classmethod
     def _create_default_config(cls):
@@ -54,6 +58,10 @@ class AppConfig:
     @classmethod
     def get_icon_path(cls) -> Path:
         return Path(cls._data["ICON_PATH"])
+    
+    @classmethod
+    def get_stock_file_path(cls) -> Path:
+        return Path(cls._data["STOCK_FILE_PATH"])
 
     # --------- SETTERS ---------
 
