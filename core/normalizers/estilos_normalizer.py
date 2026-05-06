@@ -1,4 +1,5 @@
 from ..normalizer import Normalizer
+from pathlib import Path
 import pandas as pd
 
 class EstilosNormalizer(Normalizer):
@@ -9,7 +10,7 @@ class EstilosNormalizer(Normalizer):
             return [df]
 
     
-    def normalize_sells(self, df:DataFrame, date):
+    def normalize_sells(self, df:pd.DataFrame, date):
 
         date = pd.to_datetime(date, format="%d/%m/%Y")
         print("El datetime es: ", date)
@@ -23,7 +24,7 @@ class EstilosNormalizer(Normalizer):
 
         return df
     
-    def normalize_stock(self, df:DataFrame, date):
+    def normalize_stock(self, df:pd.DataFrame, date):
         df = df.copy()
         date = pd.to_datetime(date)
         df["DiaMes"] = pd.to_numeric(df["DiaMes"], errors="coerce").fillna(0).astype(int)
@@ -43,7 +44,7 @@ class EstilosNormalizer(Normalizer):
     def __str__(self):
         return "ESTILOS"
 
-    def read_stock(self, pathfile:Path) -> DataFrame:
+    def read_stock(self, pathfile:Path) -> pd.DataFrame:
         df = pd.read_excel(pathfile)
         df = df.iloc[:-1].copy()
         return df
