@@ -6,7 +6,7 @@ from pandas import DataFrame
 class TottusNormalizer(Normalizer):
     def read(self, pathdir:Path) -> list[DataFrame]:
         if pathdir.is_file():
-            df = pd.read_csv(pathdir, sep=',', encoding='latin1')
+            df = pd.read_csv(pathdir, sep=',', encoding='latin1', decimal=',')
             return [df]
         df_list = []
         for path in pathdir.iterdir():
@@ -23,7 +23,7 @@ class TottusNormalizer(Normalizer):
 
     def read_stock(self, pathfile:Path) -> DataFrame:
         print(f"Leyendo archivo {pathfile}")
-        df =  pd.read_csv(pathfile, sep=',', encoding='latin1')
+        df =  pd.read_csv(pathfile, sep=',', encoding='latin1', decimal=',')
         return df
 
     def normalize_sells(self, df:DataFrame, date) -> DataFrame:
@@ -46,7 +46,7 @@ class TottusNormalizer(Normalizer):
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
         cols = ["venta_publico", "timbrado"]
-        df[cols] = df[cols].replace(',', '.', regex=True).astype(float) # Esta línea tenemos que corregirla pero ya!
+        # df[cols] = df[cols].replace(',', '.', regex=True).astype(float) # Esta línea tenemos que corregirla pero ya!
 
         df['date'] = pd.to_datetime(df['date'])
         df = df[df["venta_unidades"] != 0]
@@ -81,7 +81,11 @@ class TottusNormalizer(Normalizer):
 
         df["stock_locales"] = df["stock_locales"].apply(lambda x: x if x > 0 else 0)
         df["stock_transito"] = df["stock_transito"].apply(lambda x: x if x > 0 else 0)
-        df["stock_costo"] = df["stock_costo"].replace(r'\$', '', regex=True).astype(float)
+        df["stock_costo"] = (
+            df["stock_costo"]
+            .str.replace("$", "", regex=False)
+            .astype(float)
+        )
         df["stock_costo"] = df["stock_costo"].apply(lambda x: x if x > 0 else 0)
 
         df["stock_total"] = df["stock_locales"] + df["stock_transito"]
