@@ -33,6 +33,7 @@ class RipleyNormalizer(Normalizer):
         nuevas_columnas = ["fecha", "codigo_sucursal", "sku", "venta_soles", "venta_unidades", "costo_venta"]
         renombre = {clave: valor for clave, valor in zip(target_columns, nuevas_columnas)}
         temp.rename(columns=renombre, inplace=True)
+        temp["sku"] = pd.to_numeric(temp["sku"], errors='coerce')
         # Corregir esto, puede ser algo como return temp[nuevas_columas] if complete else temp
         return temp[nuevas_columnas]
     
