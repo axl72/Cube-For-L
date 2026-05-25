@@ -32,7 +32,7 @@ class AppConfig:
             cls._save()
         
         if "STOCK_FILE_PATH" not in cls._data:
-            cls._data["STOCK_FILE_PATH"] = str(Path(f"C:/Users/{USER}/Desktop/INTEK/inventarios/INVENTARIO DISPONIBLE - 21.04.26.xlsx"))
+            cls._data["STOCK_FILE_PATH"] = str(Path(f"C:/Users/{USER}/Desktop/3. INVENTARIOS INTEK//INVENTARIO DISPONIBLE - 21.04.26.xlsx"))
             cls._save()
 
     @classmethod
@@ -61,6 +61,7 @@ class AppConfig:
     
     @classmethod
     def get_stock_file_path(cls) -> Path:
+        print("Stock file path:", Path(cls._data["STOCK_FILE_PATH"]))
         return Path(cls._data["STOCK_FILE_PATH"])
 
     # --------- SETTERS ---------

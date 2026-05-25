@@ -3,7 +3,7 @@ import wx.adv
 from datetime import date
 import datetime
 import wx.grid as gridlib
-
+from pathlib import Path
 from view.wx_panels.stock_panel import StockPanel
 
 
@@ -111,8 +111,8 @@ class viewETL(wx.Panel):
             dlg = wx.FileDialog(self, "Seleccione archivo", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
         
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            self.input_selector.SetValue(path)
+            path = Path(dlg.GetPath())
+            self.input_selector.SetValue(str(path))
         dlg.Destroy()
 
     def on_select_output(self, event):
@@ -195,14 +195,14 @@ class ConvertidorPanel(wx.Panel):
 class MainFrame(wx.Frame):
     def __init__(self):
         super().__init__(None, title="Studio Suite", size=(1400, 800))
-        self.SetBackgroundColour("#2b2b2b")
+        self.SetBackgroundColour("f0f0f0")
 
         panel = wx.Panel(self)
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Sidebar
         sidebar = wx.Panel(panel, size=(240, -1))
-        sidebar.SetBackgroundColour("#1f1f1f")
+        sidebar.SetBackgroundColour("#ffffff")
         sidebar_sizer = wx.BoxSizer(wx.VERTICAL)
 
         title = wx.StaticText(sidebar, label="aTube Catcher")
