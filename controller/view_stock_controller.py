@@ -1,4 +1,5 @@
 from config import AppConfig
+from pathlib import Path
 import pandas as pd
 from view.wx_panels.stock_panel import StockPanel
 import wx
@@ -24,9 +25,12 @@ class ViewStockController():
         return df
 
     def run(self):
-        print("Stock loeaded: ", STOCK_FILE_PATH)
+        if Path(STOCK_FILE_PATH).exists() == False:
+            wx.MessageBox("No se ha configurado la ruta del archivo de stock. Por favor, configurela en AppConfig.", "Error", wx.OK | wx.ICON_ERROR)
+            return
         df = self.read_data_stock()
         self.set_stock_data(df)
+        print("Stock loeaded: ", STOCK_FILE_PATH)
         self.set_on_search()
         self.set_on_type_new_pvp()
 
