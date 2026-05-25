@@ -6,3 +6,4 @@ from .ripley_normalizer import RipleyNormalizer
 from .tailoy_normalizer import TaiLoyNormalizer
 from .tottus_normalizer import TottusNormalizer
 from .ilahui_normalizer import IlahuiNormalizer
+from .vega_normalizer import VegaNormalizer

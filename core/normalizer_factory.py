@@ -6,6 +6,7 @@ from .normalizers.estilos_normalizer import EstilosNormalizer
 from .normalizers.falabella_normalizer import FalabellaNormalizer
 from .normalizers.cencosud_normalizer import CencosudNormalizer
 from .normalizers.ilahui_normalizer import IlahuiNormalizer
+from .normalizers.vega_normalizer import VegaNormalizer
 class NormalizerFactory:
     @staticmethod
     def create_all():
@@ -17,5 +18,6 @@ class NormalizerFactory:
             "ESTILOS": EstilosNormalizer(),
             "SAGA FALABELLA": FalabellaNormalizer(),
             "CENCOSUD": CencosudNormalizer(),
-            "ILAHUI": IlahuiNormalizer()
+            "ILAHUI": IlahuiNormalizer(),
+            "GRUPO VEGA": VegaNormalizer()
         }
