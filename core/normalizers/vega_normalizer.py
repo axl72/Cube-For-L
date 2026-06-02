@@ -44,7 +44,7 @@ class VegaNormalizer(Normalizer):
     def normalize_stock(self, df: DataFrame, date) -> DataFrame:
         target_columns = [
             "FECHA",
-            "Linea",
+            "Producto",
             "Sucursal",
             "CodProducto",
             "StockFisico",
