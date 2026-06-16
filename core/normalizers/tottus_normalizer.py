@@ -34,7 +34,7 @@ class TottusNormalizer(Normalizer):
             "Historic Sales Tot Pe Desc Localfisico", "Historic Sales Tot Pe Qty", 
             "Historic Sales Tot Pe Venta Bruta", "Historic Sales Tot Pe Venta Neta"],
 
-            ["Fecha Date", "Cod Ean", "Cod SKU", "Desc SKU", "Cod Marca", 
+            ["Fecha Date", "Cod Ean", "Cod SKU", "Desc SKU", "Marca", 
             "Cod Localfisico", "Desc Localfisico", "Venta en Unidades", 
             "Venta Bruta", "Venta Neta"]
         ]
