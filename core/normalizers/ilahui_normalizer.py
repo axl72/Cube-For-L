@@ -45,6 +45,14 @@ class IlahuiNormalizer(Normalizer):
         return df
 
     def normalize_stock(self, df:DataFrame, date) -> DataFrame:
+        target_columns = ["sku", "cod_interno", "descripcion", "ubicacion", "stock", "stock_valorizado"]
+        new_columns = ['sku', 'sku_intek', 'descripcion', 'local', 'stock', 'stock_costo']
+        rename = {clave: valor for clave, valor in zip(target_columns, new_columns)}
+
+        df = df[target_columns]
+        df.rename(columns=rename, inplace=True)
+        df = df[df["stock"] != 0]
+
         return df
     
     def read_stock(self, pathfile:Path) -> DataFrame:
