@@ -108,11 +108,16 @@ class viewETL(wx.Panel):
         if self.check_button.GetValue():
             dlg = wx.DirDialog(self, "Seleccione carpeta")
         else:
-            dlg = wx.FileDialog(self, "Seleccione archivo", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+            dlg = wx.FileDialog(self, "Seleccione archivo", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+            print("Seleccionar archivo")
         
         if dlg.ShowModal() == wx.ID_OK:
-            path = Path(dlg.GetPath())
-            self.input_selector.SetValue(str(path))
+            print("Seleccionado: ", dlg.GetPaths())
+            paths = dlg.GetPaths()
+
+            self.input_selector.SetValue(str(paths[0]))
+            self.selected_paths = paths
+
         dlg.Destroy()
 
     def on_select_output(self, event):
