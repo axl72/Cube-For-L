@@ -1,11 +1,9 @@
-from config import AppConfig
 from pathlib import Path
 import pandas as pd
 from view.wx_panels.stock_panel import StockPanel
 import wx
+import config
 
-AppConfig.load()
-STOCK_FILE_PATH = AppConfig.get_stock_file_path()
 
 class ViewStockController():
     def __init__(self, view=StockPanel):
@@ -17,7 +15,7 @@ class ViewStockController():
         self.view.set_dataframe(data)
     
     def read_data_stock(self) -> pd.DataFrame:
-        df = pd.read_excel(STOCK_FILE_PATH, sheet_name="ABRIL2026", header=2)
+        df = pd.read_excel(config.STOCK_FILE_PATH, sheet_name="ABRIL2026", header=2)
         df = df[["SKU", "DESCRIPCION", "STOCK  LOS OLIVOS21.04.26\n", "Costo Unit Reg. \nSistema", "PVP", "VALORIZADO \nCOD SIST 101",
                  "UNIDAD MÍNIMA DESPACHO", "MASTER\nPACK", "MARCA"
                  ]]
@@ -25,12 +23,12 @@ class ViewStockController():
         return df
 
     def run(self):
-        if Path(STOCK_FILE_PATH).exists() == False:
+        if Path(config.STOCK_FILE_PATH).exists() == False:
             wx.MessageBox("No se ha configurado la ruta del archivo de stock. Por favor, configurela en AppConfig.", "Error", wx.OK | wx.ICON_ERROR)
             return
         df = self.read_data_stock()
         self.set_stock_data(df)
-        print("Stock loeaded: ", STOCK_FILE_PATH)
+        print("Stock loeaded: ", config.STOCK_FILE_PATH)
         self.set_on_search()
         self.set_on_type_new_pvp()
 
