@@ -1,14 +1,11 @@
-import sys
 import getpass
 from pathlib import Path
 import json
-import os
-
-# sys.path.append('C:\\Users\\USUARIO\\Desktop\\INTEK\\updata_database')
 
 USER = getpass.getuser()
 documents_path = Path.home() / "Documents"
 CONFIG_PATH = Path(documents_path) / "config.json"
+
 class AppConfig:
 
     _config_file = Path(CONFIG_PATH)
@@ -76,3 +73,10 @@ class AppConfig:
     def set_icon_path(cls, new_path: str):
         cls._data["ICON_PATH"] = new_path
         cls._save()
+
+AppConfig.load()
+
+OUTPUT_PATH = AppConfig.get_output_path()
+ICON_PATH = AppConfig.get_icon_path()
+STOCK_FILE_PATH = AppConfig.get_stock_file_path()
+
