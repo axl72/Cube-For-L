@@ -67,7 +67,8 @@ class TaiLoyNormalizer(Normalizer):
 
         df.rename(columns={'FECHA INICIAL': 'FECHA', 'ALMACEN TIENDA': 'ALM', "CÃDIGO AS400": "AS400", "CÃDIGO SAP": "SAP", "DESCRIPCIÃN": "DESCRIPCION"}, inplace=True)
         df['FECHA'] = pd.to_datetime(df['FECHA'], format='%Y%m%d')
-        df = df[["FECHA", "ALM", "NOMBRE TIENDA", "AS400", "SAP", "DESCRIPCION", "ESTADO", "VENTA S/", "VENTA UNIDADES"]]
+        df = df[["FECHA", "ALM", "AS400", "SAP", "DESCRIPCION", "ESTADO", "VENTA S/", "VENTA UNIDADES"]]
+        df["SAP"] = pd.to_numeric(df["SAP"], errors='coerce')
         df = df[df['VENTA UNIDADES'] != 0]
         df = df.sort_values(by="FECHA", ascending=True)
         return df
