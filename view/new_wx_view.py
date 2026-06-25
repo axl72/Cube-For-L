@@ -10,6 +10,7 @@ from view.wx_panels.stock_panel import StockPanel
 # 1. COMPONENTE: VISTA ETL (Extracción, Transformación y Carga)
 # =====================================================================
 class viewETL(wx.Panel):
+    PATH_INDEX = 0
 
     """
     Representa una vista/pantalla del sistema dedicada al proceso ETL.
@@ -46,32 +47,55 @@ class viewETL(wx.Panel):
         self.lbl_archivo = wx.StaticText(self, label="Seleccione un archivo/directorio:")
         self.input_selector = wx.TextCtrl(self) # Campo de texto editable (Caja de entrada)
         self.button_input = wx.Button(self, label="...", size=(30, -1)) # Botón de tres puntos. Altura (-1) hereda la de por defecto.
-        self.check_button = wx.CheckBox(self, label="Es un directorio") # Casilla de verificación
 
         # 2.1 bottón add path
+        # Sizer horizontal para agrupar checkbox y botón juntos
+        self.button_generate_sells = wx.Button(self, label="GENERAR VENTAS")
+        self.button_generate_inventory = wx.Button(self, label="GENERAR STOCK")
+        # ===========================================================================#
+        self.box_options = wx.BoxSizer(wx.HORIZONTAL) # Sizer horizontal para agrupar checkbox y botón
 
+        self.comboBox_clients = wx.ComboBox(self, style=wx.CB_READONLY)
+        self.check_button = wx.CheckBox(self, label="Es un directorio") # Casilla de verificación
+        self.add_path_button = wx.Button(self, label="Agregar ruta", size=(120, -1))
+        self.box_options.AddStretchSpacer(1)
+        self.box_options.Add(self.comboBox_clients, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5) # Agrega el ComboBox al sizer, alineado verticalmente y con margen derecho
+        self.box_options.Add(self.button_generate_sells, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) # Agrega el botón de generar ventas al mismo sizer, alineado verticalmente y con margen izquierdo
+        self.box_options.Add(self.button_generate_inventory, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5) # Agrega el botón de generar stock al mismo sizer, alineado verticalmente y con margen izquierdo
+        self.box_options.Add(self.check_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5) # Agrega checkbox al sizer con margen derecho
+        self.box_options.Add(self.add_path_button, 0, wx.ALIGN_CENTER_VERTICAL, 5)
 
+        # ===========================================================================#    
         # 3. Sección de Salida (Output)
         self.lbl_output = wx.StaticText(self, label="Seleccione carpeta de salida:")
         self.input_selector_2 = wx.TextCtrl(self)
         self.button_input_2 = wx.Button(self, label="...", size=(30, -1))
 
+        # 3.1 Sección Archivo generado (Output)
+
+        self.lbl_archivo_generado = wx.StaticText(self, label="Archivo generado:")
+        self.input_selector_3 = wx.TextCtrl(self)
+        self.button_input_3 = wx.Button(self, label="Abrir", size=(60, -1))
+
+        self.box_output_generated = wx.BoxSizer(wx.HORIZONTAL)
+        self.box_output_generated.Add(self.lbl_archivo_generado, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        self.box_output_generated.Add(self.input_selector_3, 1, wx.EXPAND | wx.RIGHT, 5)
+        self.box_output_generated.Add(self.button_input_3, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+
         # 4. Selector de Clientes (Combobox)
         # Lista desplegable estricta de solo lectura (style=wx.CB_READONLY) para evitar que el usuario escriba
-        self.lbl_cliente = wx.StaticText(self, label="Cliente seleccionado:")
-        self.comboBox_clients = wx.ComboBox(self, style=wx.CB_READONLY)
+        # self.lbl_cliente = wx.StaticText(self, label="Cliente seleccionado:")
 
         # 5. Botones de Acción final
-        self.button_generate_sells = wx.Button(self, label="GENERAR VENTAS")
-        self.button_generate_inventory = wx.Button(self, label="GENERAR STOCK")
 
         self.path_table = gridlib.Grid(self)
-        self.path_table.CreateGrid(5, 4) # Crea una tabla de
+        self.path_table.CreateGrid(5, 5) # Crea una tabla de 5 filas y 5 columnas
         self.path_table.HideRowLabels() # Oculta etiquetas de filas para una apariencia más limpia
         self.path_table.SetColLabelValue(0, "Index")
         self.path_table.SetColLabelValue(1, "Input")
-        self.path_table.SetColLabelValue(2, "Status")
-        self.path_table.SetColLabelValue(3, "Execution Path")
+        self.path_table.SetColLabelValue(2, "Normalizer")
+        self.path_table.SetColLabelValue(3, "Status")
+        self.path_table.SetColLabelValue(4, "Execution Path")
 
         self.path_table.Bind(wx.EVT_SIZE, self.on_grid_resize) # Redimensiona columnas dinámicamente al cambiar el tamaño de la ventana
         # --- DISEÑO MECÁNICO (LAYOUT) CON SIZERS ---
@@ -96,23 +120,21 @@ class viewETL(wx.Panel):
         output_sizer.Add(self.input_selector_2, 1, wx.EXPAND)
         output_sizer.Add(self.button_input_2, 0, wx.LEFT, 5)
 
-        # Embeber todos los widgets y sub-sizers en el contenedor vertical principal
         add_widget(self.lbl_archivo, border=5)
         add_widget(input_sizer, border=10)
-        # Alinea el checkbox a la derecha y solo le asigna margen en el lado derecho
-        add_widget(self.check_button, flag=wx.ALIGN_RIGHT | wx.RIGHT, border=10)
+
+        add_widget(self.box_options, flag=wx.ALIGN_RIGHT | wx.RIGHT, border=10) # Agrega el sizer que contiene checkbox y botón juntos
         
         add_widget(self.lbl_output, border=5)
         add_widget(output_sizer, border=10)
         
-        add_widget(self.lbl_cliente, border=5)
-        add_widget(self.comboBox_clients)
+        add_widget(self.box_output_generated, flag=wx.EXPAND | wx.ALL, border=10) # Agrega el sizer que contiene la sección de archivo generado
+
         
         add_widget(self.lbl_fecha, border=5)
         add_widget(self.cal)
         
-        add_widget(self.button_generate_sells, border=10)
-        add_widget(self.button_generate_inventory, border=10)
+ 
 
         add_widget(self.path_table, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
 
@@ -123,12 +145,25 @@ class viewETL(wx.Panel):
         # Conecta las interacciones de los controles a sus respectivos métodos manejadores (handlers)
         self.button_input.Bind(wx.EVT_BUTTON, self.on_select_input)
         self.button_input_2.Bind(wx.EVT_BUTTON, self.on_select_output)
+        self.button_input_3.Bind(wx.EVT_BUTTON, self.on_add_path)
         self.cal.Bind(wx.adv.EVT_DATE_CHANGED, self.on_date_change)
         
         # Intenta centrar el componente (Nota: en sub-paneles esto suele delegarse al layout del Frame superior)
         self.Centre()
 
     # --- MÉTODOS DE INTERFAZ Y GETTERS/SETTERS ---
+    def on_add_path(self, event):
+        path = self.input_selector.GetValue().strip()
+        normalizer = self.comboBox_clients.GetValue().strip()
+        index = self.PATH_INDEX
+        self.path_table.SetCellValue(index, 0, str(index + 1)) # Columna de índice
+        self.path_table.SetCellValue(index, 1, path)          # Columna de ruta
+        self.path_table.SetCellValue(index, 2, normalizer)    # Columna de normalizador
+        self.path_table.SetCellValue(index, 3, "Pendiente")   # Columna de estado
+        self.path_table.SetCellValue(index, 4, "")            # Columna de ruta de ejecución (vacía por ahora)
+        self.input_selector.SetValue("") # Limpia la caja de texto después de agregar a la tabla
+        self.PATH_INDEX += 1
+
     def on_grid_resize(self, event):
         total_width = self.path_table.GetSize().GetWidth()
 
@@ -171,21 +206,39 @@ class viewETL(wx.Panel):
 
     def on_select_input(self, event):
         """Lanza un diálogo nativo para elegir directorios o múltiples archivos basado en el checkbox."""
+        paths = None
         if self.check_button.GetValue():
             # Abre ventana nativa para seleccionar carpetas
-            dlg = wx.DirDialog(self, "Seleccione carpeta")
+            dlg = wx.DirDialog(self, "Seleccione carpeta", style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+            if dlg.ShowModal() == wx.ID_OK:
+                paths = [dlg.GetPath()] # Retorna una lista con un único elemento
+                self.input_selector.SetValue(paths[0]) # Muestra la ruta seleccionada en la caja de texto
         else:
             # Abre ventana nativa para seleccionar archivos (permite selección múltiple mediante flags)
             dlg = wx.FileDialog(self, "Seleccione archivo", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+            if dlg.ShowModal() == wx.ID_OK:
+                paths = dlg.GetPaths() # Retorna una lista de rutas seleccionadas
+                if len(paths) == 1:
+                    self.input_selector.SetValue(paths[0]) # Muestra la ruta seleccionada en la caja de texto
             print("Seleccionar archivo")
         
         # Muestra el diálogo modal. Si el usuario confirma (Aceptar):
-        if dlg.ShowModal() == wx.ID_OK:
-            print("Seleccionado: ", dlg.GetPaths())
-            paths = dlg.GetPaths() # Retorna siempre una lista de cadenas de texto de las rutas
-
-            # Muestra en la caja de texto la primera ruta seleccionada
-            self.input_selector.SetValue(str(paths[0]))
+        if paths:
+            print("Rutas seleccionadas: ", paths)
+            if len(paths) > 1:
+                for path in paths:
+                    print("Ruta seleccionada: ", path)
+                    # añadir a la tabla cada ruta seleccionada con su índice y estado inicial
+                    if self.PATH_INDEX == self.path_table.GetNumberRows():
+                        self.path_table.AppendRows(1) # Agrega una nueva fila al final de la tabla
+                    self.path_table.AppendRows(1) # Agrega una nueva fila al final de la tabla
+                    self.path_table.SetCellValue(self.PATH_INDEX, 0, str(self.PATH_INDEX + 1))
+                    self.path_table.SetCellValue(self.PATH_INDEX, 1, path)
+                    self.path_table.SetCellValue(self.PATH_INDEX, 2, "Pendiente")
+                    self.path_table.SetCellValue(self.PATH_INDEX, 3, "")
+                    self.PATH_INDEX += 1
+            else:
+                self.input_selector.SetValue(str(paths[0]))
             # Almacena internamente todas las rutas capturadas por si se necesita procesar selección múltiple
             self.selected_paths = paths
 
@@ -219,20 +272,20 @@ class viewETL(wx.Panel):
     # Los siguientes métodos vinculan la lógica de negocio externa (pasada por parámetro) 
     # con los clics de los botones de la interfaz gráfica, abstrayendo la vista del backend.
 
-    def on_add_path(self, event):
-        paths = self.paths_selector.GetValue().strip()
-        if paths:
-            # Split the paths by newline and add each one
-            for path in paths.split('\n'):
-                path = path.strip()
-                if path:
-                    # Agrega una nueva fila a la tabla con el índice, ruta y estado inicial
-                    index = self.path_table.GetNumberRows()
-                    self.path_table.AppendRows(1)
-                self.path_table.SetCellValue(index, 0, str(index + 1)) # Columna de índice
-                self.path_table.SetCellValue(index, 1, path)          # Columna de ruta
-                self.path_table.SetCellValue(index, 2, "Pendiente")   # Columna de estado
-                self.path_table.SetCellValue(index, 3, "")            # Columna de ruta de ejecución (vacía por ahora)
+    # def on_add_path(self, event):
+    #     paths = self.paths_selector.GetValue().strip()
+    #     if paths:
+    #         # Split the paths by newline and add each one
+    #         for path in paths.split('\n'):
+    #             path = path.strip()
+    #             if path:
+    #                 # Agrega una nueva fila a la tabla con el índice, ruta y estado inicial
+    #                 index = self.path_table.GetNumberRows()
+    #                 self.path_table.AppendRows(1)
+    #             self.path_table.SetCellValue(index, 0, str(index + 1)) # Columna de índice
+    #             self.path_table.SetCellValue(index, 1, path)          # Columna de ruta
+    #             self.path_table.SetCellValue(index, 2, "Pendiente")   # Columna de estado
+    #             self.path_table.SetCellValue(index, 3, "")            # Columna de ruta de ejecución (vacía por ahora)
 
         self.add_path_button.Bind(wx.EVT_BUTTON, self.on_add_path)
         self.add_path_button = wx.Button(self, label="Agregar a tabla", size=(120, -1))

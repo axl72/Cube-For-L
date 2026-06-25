@@ -22,7 +22,7 @@ class ViewController():
     def create_output_stock(self, normalizer, path:Path, output_path:Path, fecha):
         filename = f"STOCK-OUTPUT-{normalizer}.xlsx"
         output_path = self.updater.create_stock(Path(path), normalizer, filename, self.view.get_date())
-        print("Output path: ", type(config.OUTPUT_PATH))
+        print(f"[ETL CONTROLLER LOG] Output path: {type(config.OUTPUT_PATH)}")
         output_path = Path(config.OUTPUT_PATH) / output_path
         if self.view.show_success(filename):
             self.open_excel(output_path)
@@ -31,7 +31,7 @@ class ViewController():
         try:
 
             filename = f"OUTPUT-{self.view.get_normalizer_seleccionado()}.xlsx"
-            print(input_path, type(input_path))
+            print(f"[ETL CONTROLLER LOG] Input path: {input_path}, Type: {type(input_path)}")
             output_path = self.updater.consolidate_sells(Path(input_path), normalizer, filename, fecha)
             output_path = Path(config.OUTPUT_PATH) / output_path
             if self.view.show_success(filename):

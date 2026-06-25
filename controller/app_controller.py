@@ -7,10 +7,10 @@ class AppController():
         self.etl_controller = ViewController(self.app.frame.panels["ETL"])
         self.view_stock_controller = ViewStockController(self.app.frame.panels["STOCK"])
         self.etl_controller.run()
-        print("etl controller run")
+        print("[APP CONTROLLER LOG] ETL Controller Run")
         self.view_stock_controller.run()
-        print("stock controller run")
-        
+        print("[APP CONTROLLER LOG] Stock Controller Run")
+
     def run(self):
         self.app.MainLoop()
 

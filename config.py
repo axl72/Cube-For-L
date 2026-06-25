@@ -14,12 +14,12 @@ class AppConfig:
     @classmethod
     def load(cls):
         if not cls._config_file.exists():
-            print("Config file not found. Creating default config.")
+            print("[CONFIG LOG] Config file not found. Creating default config.")
             cls._create_default_config()
 
         with open(cls._config_file, "r", encoding="utf-8") as f:
             cls._data = json.load(f)
-            print(f"Config loaded: {cls._data}")
+            print(f"[CONFIG LOG] Config loaded")
 
         # Si OUTPUT_PATH está vacío lo genera automáticamente
         if not cls._data.get("OUTPUT_PATH"):
@@ -58,7 +58,7 @@ class AppConfig:
     
     @classmethod
     def get_stock_file_path(cls) -> Path:
-        print("Stock file path:", Path(cls._data["STOCK_FILE_PATH"]))
+        print(f"[CONFIG LOG] Stock file path: {Path(cls._data['STOCK_FILE_PATH'])}")
         return Path(cls._data["STOCK_FILE_PATH"])
 
     # --------- SETTERS ---------

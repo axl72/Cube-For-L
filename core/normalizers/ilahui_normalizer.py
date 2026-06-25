@@ -45,20 +45,24 @@ class IlahuiNormalizer(Normalizer):
         return df
 
     def normalize_stock(self, df:DataFrame, date) -> DataFrame:
-        target_columns = ["sku", "cod_interno", "descripcion", "ubicacion", "stock", "stock_valorizado"]
-        new_columns = ['sku', 'sku_intek', 'descripcion', 'local', 'stock', 'stock_costo']
-        rename = {clave: valor for clave, valor in zip(target_columns, new_columns)}
+        df["fecha"] = pd.to_datetime(date, format="%d/%m/%Y")
 
+        target_columns = ["fecha", "sku", "cod_interno", "descripción", "ubicacion", "stock", "stock_valorizado"]
         df = df[target_columns]
+        new_columns = ["fecha", 'sku', 'sku_intek', 'descripcion', 'local', 'stock', 'stock_costo']
+        rename = {clave: valor for clave, valor in zip(target_columns, new_columns)}
         df.rename(columns=rename, inplace=True)
+
         df = df[df["stock"] != 0]
 
         return df
     
-    def read_stock(self, pathfile:Path) -> DataFrame:
-        print(f"Leyendo archivo {pathfile}")
-        df =  pd.read_csv(pathfile, sep=',', encoding='latin1')
-        return df
+    def read_stock(self, path:Path) -> DataFrame:
+        if path.is_file():
+            df = pd.read_excel(path)
+            return df
+        else:
+            raise ValueError("El path proporcionado no es un archivo válido.")
 
     def __str__(self):
         return "ILAHUI"

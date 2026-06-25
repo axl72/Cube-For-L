@@ -28,7 +28,7 @@ class ViewStockController():
             return
         df = self.read_data_stock()
         self.set_stock_data(df)
-        print("Stock loeaded: ", config.STOCK_FILE_PATH)
+        print(f"[STOCK CONTROLLER LOG] Stock loaded: {config.STOCK_FILE_PATH}")
         self.set_on_search()
         self.set_on_type_new_pvp()
 
