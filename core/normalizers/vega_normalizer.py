@@ -38,7 +38,7 @@ class VegaNormalizer(Normalizer):
         df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d")
         df = df[df["venta_unidades"] != 0]
         df["sku"] = pd.to_numeric(df["sku"], errors="coerce")
-
+        df = df[["fecha", "sku", "descripcion_producto", "marca", "cod_sucursal", "local", "formato", "venta_unidades", "venta_publico", ]]
         return df
 
     def normalize_stock(self, df: DataFrame, date) -> DataFrame:
@@ -55,12 +55,12 @@ class VegaNormalizer(Normalizer):
         df = df[target_columns]
         nuevas_columnas = [
             "fecha",
-            "linea",
+            "descripcion_producto",
             "local",
             "sku",
             "stock_fisico",
-            "tcp",
-            "cuc",
+            "costo_total",
+            "costo_unitario",
             "cod_sucursal",
         ]
         renombre = {
@@ -70,6 +70,7 @@ class VegaNormalizer(Normalizer):
         df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d")
         df["sku"] = pd.to_numeric(df["sku"], errors="coerce")
         df = df[df["stock_fisico"] != 0]
+        df = df[["fecha", "sku", "descripcion_producto", "cod_sucursal", "local", "stock_fisico", "costo_unitario", "costo_total"]]
 
         return df
 
