@@ -44,6 +44,7 @@ class OechsleNormalizer(Normalizer):
                           "COD_LOCAL", "DESCRIPCION_LOCAL", "STOCK(U)", "TRANSITO(U)", "STOCKNODISP.(U)", "ASIGNADO(U)"]
         df = df[target_columns]
         df = df[~df["DESCRIPCION_PRODUCTO"].str.contains(r"\b(REBATE|REB)\b", case=False, na=False)]
+        df = df[~df["DESCRIPCION_PRODUCTO"].str.contains(r"\b(OLYMPUS)\b", case=False, na=False)]
         nuevas_columnas = ["fecha", "sku", "cod_intek", "descripcion", "marca", "estado","cod_local", "descripcion_local", "stock", "transito", "stock_no_disponible", "asignado"]
         renombre = {clave:valor for clave, valor in zip(target_columns, nuevas_columnas)}
         df.rename(columns=renombre, inplace=True)
