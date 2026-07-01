@@ -5,6 +5,7 @@ import config
 import traceback
 import os
 from core.updater import Updater
+import pandas as pd
 
 
 
@@ -41,6 +42,31 @@ class ViewController():
             traceback.print_exc()
             messagebox.showerror(message=f"Problema al generar las ventas: {e}")
     
+    def create_consolidated_output_ventas(self, paths: tuple[Path, str]):
+        print(f"[ETL CONTROLLER LOG] Consolidating sells for paths:")
+        df_list = {}
+
+        paths = [(path, normalizer) for path, normalizer in paths if path != "" and normalizer != ""]
+
+        # For normalizador
+        for path, normalizer in paths:
+            normalizer = self.normalizers.get(normalizer)
+            df = normalizer.read(Path(path))[0]
+            normalized_df = normalizer.normalize_sells(df, self.view.get_date())
+            if normalizer not in df_list:
+                df_list[normalizer] = [normalized_df]
+            else:
+                df_list[normalizer].append(normalized_df)
+        
+        # For concatenador
+        for normalizer, dfs in df_list.items():
+            concatenated_df = pd.concat(dfs)
+            filename = f"OUTPUT-{normalizer}.xlsx"
+            output_path = Path(config.OUTPUT_PATH) / filename
+            concatenated_df.to_excel(output_path, index=False)
+            if self.view.show_success(filename):
+                self.open_excel(output_path)
+                
     
 
     def run(self):
@@ -48,6 +74,7 @@ class ViewController():
         self.view.set_input_selector_2(str(config.OUTPUT_PATH))
         self.view.set_on_generate_inventory(lambda n, i, o, f: self.create_output_stock(n, i, o, f))
         self.view.set_on_generate_sells(lambda n, i, o, f: self.create_output_ventas(n, i, o, f))
+        self.view.set_on_consolidate_paths(lambda paths: self.create_consolidated_output_ventas(paths))
 
     def open_excel(self, path):
         print("Abriendo archivo: ", path)

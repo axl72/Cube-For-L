@@ -70,6 +70,7 @@ class viewETL(wx.Panel):
         self.lbl_output = wx.StaticText(self, label="Seleccione carpeta de salida:")
         self.input_selector_2 = wx.TextCtrl(self)
         self.button_input_2 = wx.Button(self, label="...", size=(30, -1))
+        self.consolidate_many_paths_sells_button = wx.Button(self, label="Generar Ventas", size=(100, -1))
 
         # 3.1 Sección Archivo generado (Output)
 
@@ -141,17 +142,22 @@ class viewETL(wx.Panel):
         # Asigna el sizer al panel y le ordena renderizar la interfaz con estas directrices
         self.SetSizer(main_sizer)
 
+        add_widget(self.consolidate_many_paths_sells_button, proportion=0, flag=wx.LEFT | wx.ALL, border=10)
+
         # --- ENLACE DE EVENTOS (BINDINGS) ---
         # Conecta las interacciones de los controles a sus respectivos métodos manejadores (handlers)
         self.button_input.Bind(wx.EVT_BUTTON, self.on_select_input)
         self.button_input_2.Bind(wx.EVT_BUTTON, self.on_select_output)
         self.button_input_3.Bind(wx.EVT_BUTTON, self.on_add_path)
+        # self.consolidate_many_paths_sells_button.Bind(wx.EVT_BUTTON, self.on_consolidate_paths)
         self.cal.Bind(wx.adv.EVT_DATE_CHANGED, self.on_date_change)
         
         # Intenta centrar el componente (Nota: en sub-paneles esto suele delegarse al layout del Frame superior)
         self.Centre()
 
     # --- MÉTODOS DE INTERFAZ Y GETTERS/SETTERS ---
+
+
     def on_add_path(self, event):
         path = self.input_selector.GetValue().strip()
         normalizer = self.comboBox_clients.GetValue().strip()
@@ -167,16 +173,17 @@ class viewETL(wx.Panel):
     def on_grid_resize(self, event):
         total_width = self.path_table.GetSize().GetWidth()
 
-        prop_col0 = 0.1
-        prop_col1 = 0.5
-        prop_col2 = 0.1
-        prop_col3 = 0.3
+        prop_col0 = 0.1 # Index
+        prop_col1 = 0.5 # Path
+        prop_col2 = 0.05 # Normalizer
+        prop_col3 = 0.05 # Status
+        prop_col4 = 0.3  # Columna de ruta de ejecución (oculta)
 
         w0 = int(total_width * prop_col0)
         w1 = int(total_width * prop_col1)
         w2 = int(total_width * prop_col2)
         w3 = int(total_width * prop_col3)
-
+        w4 = int(total_width * prop_col4)
         sobrante = total_width - (w0 + w1 + w2 + w3)
         w2 += sobrante
 
@@ -184,6 +191,7 @@ class viewETL(wx.Panel):
         self.path_table.SetColSize(1, w1)
         self.path_table.SetColSize(2, w2)
         self.path_table.SetColSize(3, w3)
+        self.path_table.SetColSize(4, 0)  # Oculta la columna de ruta de ejecución
 
     def set_input_selector_2(self, text):
         """Asigna texto de forma programática a la segunda caja de texto (output)."""
@@ -234,8 +242,8 @@ class viewETL(wx.Panel):
                     self.path_table.AppendRows(1) # Agrega una nueva fila al final de la tabla
                     self.path_table.SetCellValue(self.PATH_INDEX, 0, str(self.PATH_INDEX + 1))
                     self.path_table.SetCellValue(self.PATH_INDEX, 1, path)
-                    self.path_table.SetCellValue(self.PATH_INDEX, 2, "Pendiente")
-                    self.path_table.SetCellValue(self.PATH_INDEX, 3, "")
+                    self.path_table.SetCellValue(self.PATH_INDEX, 2, self.comboBox_clients.GetValue())
+                    self.path_table.SetCellValue(self.PATH_INDEX, 3, "Pendiente")
                     self.PATH_INDEX += 1
             else:
                 self.input_selector.SetValue(str(paths[0]))
@@ -301,6 +309,18 @@ class viewETL(wx.Panel):
                 self.get_date()
             )
         self.button_generate_sells.Bind(wx.EVT_BUTTON, handler)
+
+    def set_on_consolidate_paths(self, callback):
+        """Inyecta la función encargada de ejecutar el algoritmo de consolidación de rutas."""
+        def handler(event):
+            paths = [self.path_table.GetCellValue(row, 1) for row in range(self.path_table.GetNumberRows())]
+            normalizer = [self.path_table.GetCellValue(row, 2) for row in range(self.path_table.GetNumberRows())]
+            zip_paths = list(zip(paths, normalizer))
+            print(f"[ETL VIEW LOG] Consolidating sells for paths: {zip_paths}")
+            callback(
+                zip_paths,
+            )
+        self.consolidate_many_paths_sells_button.Bind(wx.EVT_BUTTON, handler)
 
     def set_on_generate_inventory(self, callback):
         """Inyecta la función encargada de ejecutar el algoritmo de procesamiento de inventario/stock."""
